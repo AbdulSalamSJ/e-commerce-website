@@ -46,11 +46,12 @@ export const AdminDashboard: React.FC = () => {
         adminService.getProducts(),
         adminService.getOrders(),
       ]);
-      setShop(shopData);
-      setShopName(shopData.name || '');
-      setShopDescription(shopData.description || '');
-      setProducts(prodsData);
-      setOrders(ordersData);
+      const actualShop = shopData?.shop || shopData || null;
+      setShop(actualShop);
+      setShopName(actualShop?.name || '');
+      setShopDescription(actualShop?.description || '');
+      setProducts(Array.isArray(prodsData) ? prodsData : (prodsData?.products || []));
+      setOrders(Array.isArray(ordersData) ? ordersData : (ordersData?.orders || []));
     } catch (err: any) {
       error(err.response?.data?.error || 'Failed to load merchant data');
     } finally {

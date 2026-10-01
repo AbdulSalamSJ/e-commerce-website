@@ -13,7 +13,7 @@ export const OrdersPage: React.FC = () => {
       try {
         setLoading(true);
         const data = await customerService.getMyOrders();
-        setOrders(data);
+        setOrders(Array.isArray(data) ? data : (data?.orders || []));
       } catch (err: any) {
         error(err.response?.data?.error || 'Failed to fetch order history');
       } finally {

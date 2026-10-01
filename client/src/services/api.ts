@@ -96,15 +96,15 @@ export const authService = {
 export const superAdminService = {
   getOverview: async () => {
     const res = await api.get('/superadmin/overview');
-    return res.data;
+    return res.data?.metrics || res.data;
   },
   getShops: async () => {
     const res = await api.get('/superadmin/shops');
-    return res.data;
+    return res.data?.shops || res.data;
   },
   createShop: async (data: { name: string; slug: string; description?: string }) => {
     const res = await api.post('/superadmin/shops', data);
-    return res.data;
+    return res.data?.shop || res.data;
   },
   deleteShop: async (id: string) => {
     const res = await api.delete(`/superadmin/shops/${id}`);
@@ -112,11 +112,11 @@ export const superAdminService = {
   },
   getAdmins: async () => {
     const res = await api.get('/superadmin/admins');
-    return res.data;
+    return res.data?.admins || res.data;
   },
   createAdmin: async (data: { email: string; password: string; shopId: string }) => {
     const res = await api.post('/superadmin/admins', data);
-    return res.data;
+    return res.data?.admin || res.data;
   },
   deleteAdmin: async (id: string) => {
     const res = await api.delete(`/superadmin/admins/${id}`);
@@ -128,23 +128,23 @@ export const superAdminService = {
 export const adminService = {
   getShopProfile: async () => {
     const res = await api.get('/admin/shop');
-    return res.data;
+    return res.data?.shop || res.data;
   },
   updateShopProfile: async (data: Partial<Shop>) => {
     const res = await api.put('/admin/shop', data);
-    return res.data;
+    return res.data?.shop || res.data;
   },
   getProducts: async () => {
     const res = await api.get('/admin/products');
-    return res.data;
+    return res.data?.products || res.data;
   },
   createProduct: async (data: Partial<Product>) => {
     const res = await api.post('/admin/products', data);
-    return res.data;
+    return res.data?.product || res.data;
   },
   updateProduct: async (id: string, data: Partial<Product>) => {
     const res = await api.put(`/admin/products/${id}`, data);
-    return res.data;
+    return res.data?.product || res.data;
   },
   deleteProduct: async (id: string) => {
     const res = await api.delete(`/admin/products/${id}`);
@@ -152,11 +152,11 @@ export const adminService = {
   },
   getOrders: async () => {
     const res = await api.get('/admin/orders');
-    return res.data;
+    return res.data?.orders || res.data;
   },
   updateOrderStatus: async (id: string, status: Order['status']) => {
     const res = await api.put(`/admin/orders/${id}/status`, { status });
-    return res.data;
+    return res.data?.order || res.data;
   },
 };
 
@@ -164,27 +164,27 @@ export const adminService = {
 export const customerService = {
   getShops: async () => {
     const res = await api.get('/shops');
-    return res.data;
+    return res.data?.shops || res.data;
   },
   getShopBySlug: async (slug: string) => {
     const res = await api.get(`/shops/${slug}`);
-    return res.data;
+    return res.data?.shop || res.data;
   },
   getProducts: async (params?: { shopId?: string; category?: string; search?: string }) => {
     const res = await api.get('/products', { params });
-    return res.data;
+    return res.data?.products || res.data;
   },
   getProductById: async (id: string) => {
     const res = await api.get(`/products/${id}`);
-    return res.data;
+    return res.data?.product || res.data;
   },
   createOrder: async (data: { shopId: string; items: OrderItem[]; shippingAddress: string }) => {
     const res = await api.post('/orders', data);
-    return res.data;
+    return res.data?.order || res.data;
   },
   getMyOrders: async () => {
     const res = await api.get('/orders');
-    return res.data;
+    return res.data?.orders || res.data;
   },
 };
 

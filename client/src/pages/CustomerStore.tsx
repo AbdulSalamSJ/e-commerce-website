@@ -31,8 +31,8 @@ export const CustomerStore: React.FC = () => {
           customerService.getShops(),
           customerService.getProducts(),
         ]);
-        setShops(shopsData);
-        setProducts(prodsData);
+        setShops(Array.isArray(shopsData) ? shopsData : (shopsData?.shops || []));
+        setProducts(Array.isArray(prodsData) ? prodsData : (prodsData?.products || []));
       } catch (err) {
         console.error('Failed to load storefront catalog', err);
       } finally {
@@ -42,7 +42,7 @@ export const CustomerStore: React.FC = () => {
     fetchCatalog();
   }, []);
 
-  const categories = ['all', ...Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[]];
+  const categories = ['all', ...Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))) as string[]];
 
   const filteredProducts = products.filter((p) => {
     const matchesShop = selectedShopId === 'all' || p.shopId === selectedShopId;

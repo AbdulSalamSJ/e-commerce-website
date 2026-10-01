@@ -59,9 +59,9 @@ export const SuperAdminDashboard: React.FC = () => {
         superAdminService.getShops(),
         superAdminService.getAdmins(),
       ]);
-      setOverview(ovData);
-      setShops(shopsData);
-      setAdmins(adminsData);
+      setOverview(ovData?.metrics || ovData || null);
+      setShops(Array.isArray(shopsData) ? shopsData : (shopsData?.shops || []));
+      setAdmins(Array.isArray(adminsData) ? adminsData : (adminsData?.admins || []));
     } catch (err: any) {
       error(err.response?.data?.error || 'Failed to load platform data');
     } finally {
