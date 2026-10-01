@@ -27,7 +27,7 @@ app.get('/health', async (_req: Request, res: Response) => {
     const client = await Promise.race([
       pool.connect(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Database connection timed out (3000ms)')), 3000)
+        setTimeout(() => reject(new Error('Database connection timed out (10000ms)')), 10000)
       ),
     ]);
 

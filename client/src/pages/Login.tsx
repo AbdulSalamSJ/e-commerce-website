@@ -39,7 +39,12 @@ export const Login: React.FC = () => {
         navigate(from === '/login' ? '/' : from);
       }
     } catch (err: any) {
-      error(err.response?.data?.error || 'Invalid credentials');
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Invalid credentials';
+      error(msg);
     } finally {
       setLoading(false);
     }
@@ -47,14 +52,14 @@ export const Login: React.FC = () => {
 
   const handleQuickFill = (role: 'superadmin' | 'admin' | 'customer') => {
     if (role === 'superadmin') {
-      setEmail('superadmin@platform.com');
-      setPassword('SuperAdmin@2025!');
+      setEmail('superadmin@platform.local');
+      setPassword('SuperAdmin#2026!');
     } else if (role === 'admin') {
       setEmail('admin@cyberhub.com');
-      setPassword('AdminPass123!');
+      setPassword('Admin#2026!');
     } else {
       setEmail('customer@nexus.com');
-      setPassword('CustomerPass123!');
+      setPassword('Customer#2026!');
     }
   };
 
