@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { eq } from 'drizzle-orm';
@@ -94,11 +94,16 @@ export async function register(req: Request, res: Response): Promise<void> {
       token,
       user: newUser,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
+    const dbMsg = !process.env.DATABASE_URL
+      ? 'Database configuration missing: DATABASE_URL is not set.'
+      : (error?.message?.includes('ECONNREFUSED') || error?.message?.includes('timeout')
+         ? 'Database connection failure. Please verify database connectivity.'
+         : 'An unexpected error occurred during registration.');
     res.status(500).json({
       error: 'Internal Server Error',
-      message: 'An unexpected error occurred during registration.',
+      message: dbMsg,
     });
   }
 }
@@ -166,11 +171,16 @@ export async function login(req: Request, res: Response): Promise<void> {
         createdAt: user.createdAt,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
+    const dbMsg = !process.env.DATABASE_URL
+      ? 'Database configuration missing: DATABASE_URL is not configured.'
+      : (error?.message?.includes('ECONNREFUSED') || error?.message?.includes('timeout')
+         ? 'Database connection failure. Please verify database connectivity.'
+         : 'An unexpected error occurred during login.');
     res.status(500).json({
       error: 'Internal Server Error',
-      message: 'An unexpected error occurred during login.',
+      message: dbMsg,
     });
   }
 }
