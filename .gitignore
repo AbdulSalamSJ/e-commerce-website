@@ -16,6 +16,7 @@ dist/
 build/
 client/dist/
 dist-ssr/
+*.tsbuildinfo
 
 # Logs
 logs/
