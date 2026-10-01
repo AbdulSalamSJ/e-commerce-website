@@ -1,18 +1,41 @@
 {
-  "buildCommand": "cd client && npm install && npm run build",
-  "outputDirectory": "client/dist",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": ".",
+      "framework": "express"
+    },
+    "client": {
+      "root": "client",
+      "framework": "vite",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "app",
+          "format": "url",
+          "env": "APP_URL"
+        }
+      ]
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api"
+      "destination": {
+        "service": "app"
+      }
     },
     {
       "source": "/health",
-      "destination": "/api"
+      "destination": {
+        "service": "app"
+      }
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": {
+        "service": "client"
+      }
     }
   ]
 }
