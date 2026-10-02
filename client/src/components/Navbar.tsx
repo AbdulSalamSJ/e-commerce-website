@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { 
   ShoppingBag, 
   ShieldCheck, 
@@ -9,16 +9,69 @@ import {
   LogIn, 
   UserPlus, 
   Sparkles,
-  Layers
+  Layers,
+  Headphones,
+  Gamepad2,
+  Monitor,
+  Watch,
+  Gem,
+  Shirt,
+  Tag,
+  Cpu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { customerService } from '../services/api';
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const DEFAULT_CATEGORIES: CategoryItem[] = [
+  { id: 'all', name: 'All Products', icon: Sparkles },
+  { id: 'Audio', name: 'Audio', icon: Headphones },
+  { id: 'Gaming', name: 'Gaming', icon: Gamepad2 },
+  { id: 'Displays', name: 'Displays', icon: Monitor },
+  { id: 'Watches', name: 'Watches', icon: Watch },
+  { id: 'Jewelry', name: 'Jewelry', icon: Gem },
+  { id: 'Apparel', name: 'Apparel', icon: Shirt },
+  { id: 'Electronics', name: 'Electronics', icon: Cpu },
+];
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout, isSuperAdmin, isAdmin } = useAuth();
   const { totalItems, setIsCartOpen } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+
+  useEffect(() => {
+    // Dynamically fetch any additional categories from catalog products
+    customerService.getProducts()
+      .then((res) => {
+        const prods = Array.isArray(res) ? res : res?.products || [];
+        const dbCategories = Array.from(
+          new Set(prods.map((p: any) => p.category).filter(Boolean))
+        ) as string[];
+
+        setCategories((prev) => {
+          const merged = [...prev];
+          for (const cat of dbCategories) {
+            if (!merged.some((m) => m.id.toLowerCase() === cat.toLowerCase())) {
+              merged.push({ id: cat, name: cat, icon: Tag });
+            }
+          }
+          return merged;
+        });
+      })
+      .catch((err) => {
+        console.error('Error fetching categories for second header:', err);
+      });
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -26,9 +79,25 @@ export const Navbar: React.FC = () => {
   };
 
   const isActive = (path: string) => location.pathname === path;
+  const currentCategory = searchParams.get('category')?.toLowerCase() || 'all';
+
+  const handleCategoryClick = (categoryId: string) => {
+    const isStorefront = location.pathname === '/' || location.pathname.startsWith('/store');
+    const targetPath = isStorefront ? location.pathname : '/';
+
+    const newParams = new URLSearchParams(searchParams);
+    if (categoryId.toLowerCase() === 'all') {
+      newParams.delete('category');
+    } else {
+      newParams.set('category', categoryId);
+    }
+    const searchStr = newParams.toString() ? `?${newParams.toString()}` : '';
+    navigate(`${targetPath}${searchStr}`);
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 transition-all">
+      {/* Primary Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
         <Link to="/" className="flex items-center gap-2.5 group">
@@ -165,6 +234,49 @@ export const Navbar: React.FC = () => {
               </Link>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* SECOND HEADER: Category Navigation Bar */}
+      <div className="border-t border-white/10 bg-slate-950/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between gap-4">
+          {/* Scrollable category list */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 flex-1">
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider pr-3 border-r border-white/10 shrink-0">
+              <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Categories</span>
+            </div>
+
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              const isSelected =
+                (currentCategory === 'all' && cat.id.toLowerCase() === 'all') ||
+                (currentCategory.toLowerCase() === cat.id.toLowerCase());
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm font-semibold'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`} />
+                  <span>{cat.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right indicator */}
+          <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 shrink-0">
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-300 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live Catalog
+            </span>
+          </div>
         </div>
       </div>
     </header>

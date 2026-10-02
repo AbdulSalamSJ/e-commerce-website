@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
-  Store, 
   ShoppingBag, 
   Sparkles, 
   Tag,
@@ -15,13 +14,14 @@ import { getThemeConfig, ShopThemeId } from '../types/theme';
 
 export const CustomerStore: React.FC = () => {
   const { slug } = useParams<{ slug?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [shops, setShops] = useState<Shop[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [selectedShopId, setSelectedShopId] = useState<string>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const selectedCategory = searchParams.get('category') || 'all';
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const { addToCart } = useCart();
@@ -59,11 +59,11 @@ export const CustomerStore: React.FC = () => {
   const activeThemeId: ShopThemeId = (activeShop?.theme || 'cyber-neon') as ShopThemeId;
   const themeConfig = getThemeConfig(activeThemeId);
 
-  const categories = ['all', ...Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))) as string[]];
-
   const filteredProducts = products.filter((p) => {
     const matchesShop = selectedShopId === 'all' || p.shopId === selectedShopId;
-    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory.toLowerCase() === 'all' ||
+      (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase());
     const matchesSearch =
       !searchQuery.trim() ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -165,73 +165,34 @@ export const CustomerStore: React.FC = () => {
       </section>
 
       {/* Storefront Catalog */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Filter Bar: Shops & Categories */}
-        <div className="space-y-4">
-          {/* Shop selector chips */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            <span className="text-xs text-slate-400 uppercase font-mono tracking-wider shrink-0 mr-2 flex items-center gap-1">
-              <Store className="w-3.5 h-3.5 text-slate-400" />
-              Stores:
-            </span>
-            <button
-              onClick={() => setSelectedShopId('all')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                selectedShopId === 'all'
-                  ? 'bg-white/20 text-white shadow-md'
-                  : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              All Stores ({shops.length})
-            </button>
-            {shops.map((s) => {
-              const sTheme = getThemeConfig(s.theme);
-              const isSelected = selectedShopId === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedShopId(s.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border ${
-                    isSelected
-                      ? `${sTheme.pillBadgeClass} shadow-md`
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white border-white/5'
-                  }`}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: sTheme.primaryColor }}
-                  />
-                  <span>{s.name}</span>
-                  <span className="text-[10px] opacity-75 font-mono">
-                    [{sTheme.badgeText}]
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Category selector chips */}
-          {categories.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-              <span className="text-xs text-slate-400 uppercase font-mono tracking-wider shrink-0 mr-2 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-slate-400" />
-                Category:
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* Catalog Section Header & Active Category Indicator */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+              <span>{activeShop ? `${activeShop.name} Catalog` : 'Catalog Products'}</span>
+              <span className="text-xs font-normal text-slate-400">
+                ({filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'})
               </span>
-              {categories.map((c) => (
+            </h2>
+            {selectedCategory.toLowerCase() !== 'all' && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
+                <Tag className="w-3.5 h-3.5" />
+                <span className="capitalize">{selectedCategory}</span>
                 <button
-                  key={c}
-                  onClick={() => setSelectedCategory(c)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium capitalize whitespace-nowrap transition-all cursor-pointer ${
-                    selectedCategory === c
-                      ? 'bg-white/15 text-white border border-white/20'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
+                  onClick={() => {
+                    const p = new URLSearchParams(searchParams);
+                    p.delete('category');
+                    setSearchParams(p);
+                  }}
+                  className="ml-1 text-slate-400 hover:text-white cursor-pointer font-bold"
+                  title="Clear category filter"
                 >
-                  {c}
+                  ×
                 </button>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Products Grid */}
