@@ -6,10 +6,13 @@ import {
   Plus, 
   Trash2, 
   Edit3, 
-  Layers
+  Layers,
+  Palette,
+  ExternalLink
 } from 'lucide-react';
 import { adminService, Product, Order, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { getThemeConfig } from '../types/theme';
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings'>('products');
@@ -397,6 +400,39 @@ export const AdminDashboard: React.FC = () => {
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
+
+            {/* Assigned Theme Display */}
+            {(() => {
+              const thConfig = getThemeConfig(shop?.theme);
+              return (
+                <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-amber-400" />
+                      Assigned Shop Theme
+                    </span>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${thConfig.pillBadgeClass}`}>
+                      {thConfig.badgeText}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {thConfig.description}
+                  </p>
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-mono">Managed by Super-Administrator</span>
+                    <a
+                      href={`/store/${shop?.slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Preview Storefront
+                    </a>
+                  </div>
+                </div>
+              );
+            })()}
 
             <button
               type="submit"

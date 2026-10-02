@@ -1,4 +1,4 @@
-﻿import { pgTable, uuid, text, timestamp, decimal, pgEnum, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, decimal, pgEnum, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // 1.3 Role Enum definition: 'superadmin', 'admin', 'customer'
@@ -12,6 +12,7 @@ export const shops = pgTable('shops', {
   description: text('description'),
   logoUrl: text('logo_url'),
   bannerUrl: text('banner_url'),
+  theme: text('theme').default('cyber-neon').notNull(),
   status: text('status').default('active').notNull(), // 'active', 'suspended', 'pending'
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

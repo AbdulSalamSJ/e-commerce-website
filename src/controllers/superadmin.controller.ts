@@ -1,8 +1,9 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { users, shops, products, orders } from '../db/schema.js';
+import { isValidTheme, ShopThemeId } from '../types/theme.js';
 
 const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT) || 10;
 
@@ -43,7 +44,7 @@ export async function getOverview(_req: Request, res: Response): Promise<void> {
  */
 export async function createShop(req: Request, res: Response): Promise<void> {
   try {
-    const { name, slug, description, logoUrl, bannerUrl } = req.body;
+    const { name, slug, description, logoUrl, bannerUrl, theme } = req.body;
 
     if (!name || !slug) {
       res.status(400).json({ error: 'Bad Request', message: 'Shop name and slug are required.' });
@@ -61,6 +62,8 @@ export async function createShop(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const selectedTheme: ShopThemeId = isValidTheme(theme) ? theme : 'cyber-neon';
+
     const [newShop] = await db
       .insert(shops)
       .values({
@@ -69,6 +72,7 @@ export async function createShop(req: Request, res: Response): Promise<void> {
         description: description ? String(description).trim() : null,
         logoUrl: logoUrl || null,
         bannerUrl: bannerUrl || null,
+        theme: selectedTheme,
         status: 'active',
       })
       .returning();
@@ -125,7 +129,7 @@ export async function listShops(_req: Request, res: Response): Promise<void> {
 export async function updateShop(req: Request, res: Response): Promise<void> {
   try {
     const id = String(req.params.id);
-    const { name, description, logoUrl, bannerUrl, status } = req.body;
+    const { name, description, logoUrl, bannerUrl, theme, status } = req.body;
 
     const existing = await db.query.shops.findFirst({
       where: (s, { eq }) => eq(s.id, id),
@@ -143,6 +147,7 @@ export async function updateShop(req: Request, res: Response): Promise<void> {
         description: description !== undefined ? description : existing.description,
         logoUrl: logoUrl !== undefined ? logoUrl : existing.logoUrl,
         bannerUrl: bannerUrl !== undefined ? bannerUrl : existing.bannerUrl,
+        theme: theme !== undefined && isValidTheme(theme) ? theme : existing.theme,
         status: status !== undefined ? status : existing.status,
         updatedAt: new Date(),
       })

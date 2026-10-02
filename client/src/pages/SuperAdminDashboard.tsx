@@ -7,10 +7,13 @@ import {
   TrendingUp, 
   ShieldCheck, 
   ShoppingBag, 
-  Store
+  Store,
+  Palette,
+  ExternalLink
 } from 'lucide-react';
 import { superAdminService, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { THEME_LIST, getThemeConfig, ShopThemeId } from '../types/theme';
 
 interface AdminUser {
   id: string;
@@ -41,6 +44,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [shopName, setShopName] = useState('');
   const [shopSlug, setShopSlug] = useState('');
   const [shopDescription, setShopDescription] = useState('');
+  const [shopTheme, setShopTheme] = useState<ShopThemeId>('cyber-neon');
   const [submittingShop, setSubmittingShop] = useState(false);
 
   // Admin Form
@@ -86,17 +90,29 @@ export const SuperAdminDashboard: React.FC = () => {
         name: shopName,
         slug: shopSlug.toLowerCase().trim().replace(/\s+/g, '-'),
         description: shopDescription,
+        theme: shopTheme,
       });
-      success(`Shop "${shopName}" onboarded successfully!`);
+      success(`Shop "${shopName}" onboarded with theme "${getThemeConfig(shopTheme).badgeText}"!`);
       setIsShopModalOpen(false);
       setShopName('');
       setShopSlug('');
       setShopDescription('');
+      setShopTheme('cyber-neon');
       fetchData();
     } catch (err: any) {
       error(err.response?.data?.error || 'Failed to onboard shop');
     } finally {
       setSubmittingShop(false);
+    }
+  };
+
+  const handleUpdateShopTheme = async (shopId: string, newTheme: ShopThemeId, name: string) => {
+    try {
+      await superAdminService.updateShop(shopId, { theme: newTheme });
+      success(`Updated theme for "${name}" to ${getThemeConfig(newTheme).badgeText}`);
+      fetchData();
+    } catch (err: any) {
+      error(err.response?.data?.error || 'Failed to update shop theme');
     }
   };
 
@@ -282,30 +298,65 @@ export const SuperAdminDashboard: React.FC = () => {
                 No stores registered yet. Click "Onboard Shop" to create your first vendor.
               </div>
             ) : (
-              shops.map((s) => (
-                <div key={s.id} className="py-3.5 flex items-center justify-between group">
-                  <div className="min-w-0 pr-4">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-white truncate text-sm">{s.name}</h4>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-                        /{s.slug}
-                      </span>
+              shops.map((s) => {
+                const themeConfig = getThemeConfig(s.theme);
+                return (
+                  <div key={s.id} className="py-3.5 flex items-center justify-between group">
+                    <div className="min-w-0 pr-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-semibold text-white truncate text-sm">{s.name}</h4>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-slate-300 border border-white/10 font-mono">
+                          /{s.slug}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${themeConfig.pillBadgeClass}`}>
+                          <Palette className="w-2.5 h-2.5" />
+                          {themeConfig.badgeText}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 truncate mt-0.5 max-w-sm">
+                        {s.description || 'No description provided'}
+                      </p>
+                      <div className="mt-1 flex items-center gap-3">
+                        <a
+                          href={`/store/${s.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Visit Storefront
+                        </a>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-400 truncate mt-0.5 max-w-sm">
-                      {s.description || 'No description provided'}
-                    </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Theme quick switcher */}
+                      <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
+                        <Palette className="w-3 h-3 text-slate-400" />
+                        <select
+                          value={s.theme || 'cyber-neon'}
+                          onChange={(e) => handleUpdateShopTheme(s.id, e.target.value as ShopThemeId, s.name)}
+                          className="text-xs bg-transparent text-slate-200 focus:outline-none cursor-pointer"
+                          title="Change assigned theme"
+                        >
+                          {THEME_LIST.map((th) => (
+                            <option key={th.id} value={th.id} className="bg-slate-900 text-white">
+                              {th.badgeText}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteShop(s.id, s.name)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Delete Shop"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => handleDeleteShop(s.id, s.name)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Delete Shop"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -396,6 +447,72 @@ export const SuperAdminDashboard: React.FC = () => {
                     className="w-full py-2 bg-transparent text-white text-sm focus:outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Theme Selector Dropdown */}
+              <div>
+                <label className="flex items-center justify-between text-xs font-medium text-slate-300 mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5 text-purple-400" />
+                    Shop Theme
+                  </span>
+                  <span className="text-[10px] text-purple-300 font-mono">Select Theme from Dropdown</span>
+                </label>
+                <select
+                  id="shop-theme-select"
+                  value={shopTheme}
+                  onChange={(e) => setShopTheme(e.target.value as ShopThemeId)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer shadow-inner"
+                >
+                  {THEME_LIST.map((th) => (
+                    <option key={th.id} value={th.id} className="bg-slate-900 text-white py-1">
+                      {th.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Theme Visual Preview Card */}
+                {(() => {
+                  const activeTh = getThemeConfig(shopTheme);
+                  return (
+                    <div className="mt-2.5 p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/10 shadow-sm"
+                            style={{ backgroundColor: activeTh.primaryColor }}
+                            title={`Primary: ${activeTh.primaryColor}`}
+                          />
+                          <span
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/10 shadow-sm"
+                            style={{ backgroundColor: activeTh.accentColor }}
+                            title={`Accent: ${activeTh.accentColor}`}
+                          />
+                          <span
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/10 shadow-sm"
+                            style={{ backgroundColor: activeTh.bgDark }}
+                            title={`Canvas: ${activeTh.bgDark}`}
+                          />
+                          <span className="text-xs font-bold text-white ml-1">
+                            {activeTh.badgeText}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${activeTh.pillBadgeClass}`}>
+                          Active Theme
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        {activeTh.description}
+                      </p>
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Palette:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[10px] text-slate-400">{activeTh.tagline}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div>

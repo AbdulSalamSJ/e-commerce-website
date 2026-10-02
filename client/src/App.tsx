@@ -26,6 +26,7 @@ function App() {
                 <Routes>
                   {/* Public Storefront */}
                   <Route path="/" element={<CustomerStore />} />
+                  <Route path="/store/:slug" element={<CustomerStore />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
 

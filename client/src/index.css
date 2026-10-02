@@ -7,6 +7,7 @@
 @layer base {
   :root {
     /* Phase 5 Color Palette: Dark-mode canvas #0b0f17 & emerald/teal accents */
+/* Phase 5 Color Palette: Dark-mode canvas #0b0f17 & emerald/teal accents */
     --background: 221 34% 7%; /* #0b0f17 */
     --foreground: 210 40% 98%;
 
@@ -37,6 +38,58 @@
     --ring: 165 80% 48%;
 
     --radius: 0.875rem; /* 14px border radius per spec */
+  }
+
+  /* ========================================================================= */
+  /* THREE MULTI-TENANT SHOP THEMES                                            */
+  /* ========================================================================= */
+
+  /* 1. Theme: Cyber Neon (Obsidian, Electric Emerald & Cyan) */
+  [data-theme="cyber-neon"] {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 222 47% 6%;
+    --accent: 189 94% 43%;
+    --accent-foreground: 222 47% 6%;
+    --border: 222 30% 16%;
+    --input: 222 30% 16%;
+    --ring: 160 84% 39%;
+    --radius: 0.875rem;
+  }
+
+  /* 2. Theme: Royal Luxe (Caviar Espresso & Radiant Champagne Gold) */
+  [data-theme="luxury-gold"] {
+    --background: 24 10% 4%;
+    --foreground: 45 40% 96%;
+    --card: 24 12% 8%;
+    --card-foreground: 45 40% 96%;
+    --primary: 43 96% 56%;
+    --primary-foreground: 24 10% 4%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 24 10% 4%;
+    --border: 35 25% 18%;
+    --input: 35 25% 18%;
+    --ring: 43 96% 56%;
+    --radius: 1rem;
+  }
+
+  /* 3. Theme: Solar Sunset (Midnight Violet & Vivid Coral/Rose) */
+  [data-theme="sunset-flare"] {
+    --background: 252 38% 7%;
+    --foreground: 330 30% 98%;
+    --card: 252 35% 10%;
+    --card-foreground: 330 30% 98%;
+    --primary: 347 89% 60%;
+    --primary-foreground: 252 38% 7%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 252 38% 7%;
+    --border: 252 25% 20%;
+    --input: 252 25% 20%;
+    --ring: 347 89% 60%;
+    --radius: 1.125rem;
   }
 
   * {
@@ -84,6 +137,22 @@
   border-color: rgba(16, 185, 129, 0.35);
 }
 
+/* Theme-specific Card Hovers */
+[data-theme="cyber-neon"] .glass-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 20px -5px rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+[data-theme="luxury-gold"] .glass-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 20px -5px rgba(245, 158, 11, 0.3);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+[data-theme="sunset-flare"] .glass-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 20px -5px rgba(244, 63, 94, 0.3);
+  border-color: rgba(244, 63, 94, 0.45);
+}
+
 .interactive-hover {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -118,6 +187,14 @@
 
 .glow-purple {
   box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.35);
+}
+
+.glow-gold {
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35);
+}
+
+.glow-rose {
+  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35);
 }
 
 /* Modal and Drawers Keyframe Animations */

@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { eq, and, ilike } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { shops, products, orders } from '../db/schema.js';
@@ -18,6 +18,7 @@ export async function listActiveShops(_req: Request, res: Response): Promise<voi
         description: true,
         logoUrl: true,
         bannerUrl: true,
+        theme: true,
       },
     });
 

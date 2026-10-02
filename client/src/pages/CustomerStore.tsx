@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { 
   Search, 
   Store, 
   ShoppingBag, 
   Sparkles, 
-  Tag
+  Tag,
+  Palette
 } from 'lucide-react';
 import { customerService, Product, Shop } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { getThemeConfig, ShopThemeId } from '../types/theme';
 
 export const CustomerStore: React.FC = () => {
+  const { slug } = useParams<{ slug?: string }>();
   const [shops, setShops] = useState<Shop[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +35,17 @@ export const CustomerStore: React.FC = () => {
           customerService.getShops(),
           customerService.getProducts(),
         ]);
-        setShops(Array.isArray(shopsData) ? shopsData : (shopsData?.shops || []));
+        const loadedShops: Shop[] = Array.isArray(shopsData) ? shopsData : (shopsData?.shops || []);
+        setShops(loadedShops);
         setProducts(Array.isArray(prodsData) ? prodsData : (prodsData?.products || []));
+
+        // If navigated by /store/:slug, preselect that shop
+        if (slug) {
+          const matched = loadedShops.find((s) => s.slug === slug);
+          if (matched) {
+            setSelectedShopId(matched.id);
+          }
+        }
       } catch (err) {
         console.error('Failed to load storefront catalog', err);
       } finally {
@@ -40,7 +53,11 @@ export const CustomerStore: React.FC = () => {
       }
     };
     fetchCatalog();
-  }, []);
+  }, [slug]);
+
+  const activeShop = selectedShopId !== 'all' ? shops.find((item) => item.id === selectedShopId) : null;
+  const activeThemeId: ShopThemeId = (activeShop?.theme || 'cyber-neon') as ShopThemeId;
+  const themeConfig = getThemeConfig(activeThemeId);
 
   const categories = ['all', ...Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))) as string[]];
 
@@ -55,9 +72,8 @@ export const CustomerStore: React.FC = () => {
     return matchesShop && matchesCategory && matchesSearch;
   });
 
-  const getShopName = (shopId: string) => {
-    const s = shops.find((item) => item.id === shopId);
-    return s ? s.name : 'Verified Merchant';
+  const getShopById = (shopId: string) => {
+    return shops.find((item) => item.id === shopId);
   };
 
   const handleAddToCart = (p: Product) => {
@@ -65,44 +81,87 @@ export const CustomerStore: React.FC = () => {
     success(`Added "${p.name}" to cart`);
   };
 
+  const heroGradients: Record<ShopThemeId, string> = {
+    'cyber-neon': 'bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent',
+    'luxury-gold': 'bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 bg-clip-text text-transparent',
+    'sunset-flare': 'bg-gradient-to-r from-rose-400 via-pink-400 to-purple-400 bg-clip-text text-transparent',
+  };
+
+  const ambientGlows: Record<ShopThemeId, string> = {
+    'cyber-neon': 'bg-gradient-to-tr from-emerald-600/20 via-cyan-500/15 to-transparent',
+    'luxury-gold': 'bg-gradient-to-tr from-amber-600/25 via-yellow-500/15 to-transparent',
+    'sunset-flare': 'bg-gradient-to-tr from-rose-600/25 via-violet-600/15 to-transparent',
+  };
+
   return (
-    <div className="space-y-12 pb-16">
+    <div className="space-y-12 pb-16 transition-colors duration-300" data-theme={activeThemeId}>
       {/* Hero Section */}
       <section className="relative overflow-hidden py-16 sm:py-24 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Next-Gen Multi-Vendor Marketplace</span>
-          </div>
+          {activeShop ? (
+            <>
+              <div 
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6 shadow-sm border"
+                style={{
+                  backgroundColor: `${themeConfig.primaryColor}15`,
+                  borderColor: `${themeConfig.primaryColor}40`,
+                  color: themeConfig.primaryColor,
+                }}
+              >
+                <Palette className="w-3.5 h-3.5" />
+                <span>{themeConfig.badgeText} Theme • {activeShop.name}</span>
+              </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
-            Curated Independent Brands.{' '}
-            <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">
-              One Unified Checkout.
-            </span>
-          </h1>
+              <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
+                {activeShop.name}{' '}
+                <span className={heroGradients[activeThemeId]}>
+                  Storefront
+                </span>
+              </h1>
 
-          <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Shop directly from verified boutique merchants and emerging creators with custom order routing.
-          </p>
+              <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+                {activeShop.description || themeConfig.description}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-6">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Next-Gen Multi-Vendor Marketplace • 3 Branded Themes</span>
+              </div>
+
+              <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
+                Curated Independent Brands.{' '}
+                <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">
+                  Custom Shop Themes.
+                </span>
+              </h1>
+
+              <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+                Explore shops personalized by their SuperAdmin assigned themes: Cyber Neon, Royal Luxe, and Solar Sunset.
+              </p>
+            </>
+          )}
 
           {/* Search bar */}
           <div className="mt-8 max-w-xl mx-auto relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-              <Search className="w-5 h-5 text-emerald-400" />
+              <Search className="w-5 h-5 text-slate-400" />
             </div>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search products, technology, apparel..."
-              className="w-full pl-12 pr-4 py-3.5 rounded-2xl glass-panel text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-2xl transition-all"
+              className="w-full pl-12 pr-4 py-3.5 rounded-2xl glass-panel text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 shadow-2xl transition-all"
             />
           </div>
         </div>
 
         {/* Ambient radial blur glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-tr from-emerald-600/20 via-teal-500/10 to-transparent blur-3xl -z-10 rounded-full pointer-events-none"></div>
+        <div 
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[320px] blur-3xl -z-10 rounded-full pointer-events-none transition-all duration-700 ${ambientGlows[activeThemeId]}`}
+        />
       </section>
 
       {/* Storefront Catalog */}
@@ -112,39 +171,50 @@ export const CustomerStore: React.FC = () => {
           {/* Shop selector chips */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
             <span className="text-xs text-slate-400 uppercase font-mono tracking-wider shrink-0 mr-2 flex items-center gap-1">
-              <Store className="w-3.5 h-3.5 text-emerald-400" />
+              <Store className="w-3.5 h-3.5 text-slate-400" />
               Stores:
             </span>
             <button
               onClick={() => setSelectedShopId('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 selectedShopId === 'all'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                  ? 'bg-white/20 text-white shadow-md'
                   : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
               }`}
             >
-              All Stores
+              All Stores ({shops.length})
             </button>
-            {shops.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedShopId(s.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  selectedShopId === s.id
-                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                    : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                {s.name}
-              </button>
-            ))}
+            {shops.map((s) => {
+              const sTheme = getThemeConfig(s.theme);
+              const isSelected = selectedShopId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedShopId(s.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border ${
+                    isSelected
+                      ? `${sTheme.pillBadgeClass} shadow-md`
+                      : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white border-white/5'
+                  }`}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: sTheme.primaryColor }}
+                  />
+                  <span>{s.name}</span>
+                  <span className="text-[10px] opacity-75 font-mono">
+                    [{sTheme.badgeText}]
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Category selector chips */}
           {categories.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
               <span className="text-xs text-slate-400 uppercase font-mono tracking-wider shrink-0 mr-2 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-teal-400" />
+                <Tag className="w-3.5 h-3.5 text-slate-400" />
                 Category:
               </span>
               {categories.map((c) => (
@@ -153,7 +223,7 @@ export const CustomerStore: React.FC = () => {
                   onClick={() => setSelectedCategory(c)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium capitalize whitespace-nowrap transition-all cursor-pointer ${
                     selectedCategory === c
-                      ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                      ? 'bg-white/15 text-white border border-white/20'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -167,7 +237,7 @@ export const CustomerStore: React.FC = () => {
         {/* Products Grid */}
         {loading ? (
           <div className="py-20 flex justify-center">
-            <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+            <div className="w-10 h-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="py-20 text-center glass-panel rounded-2xl border border-white/5 p-8">
@@ -179,62 +249,73 @@ export const CustomerStore: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((p) => (
-              <div
-                key={p.id}
-                className="glass-card rounded-2xl border border-white/10 overflow-hidden flex flex-col group hover:border-emerald-500/40"
-              >
-                {/* Product Image */}
-                <div className="relative h-56 bg-slate-900 overflow-hidden">
-                  <img
-                    src={p.imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80'}
-                    alt={p.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md text-[11px] font-medium text-emerald-300 border border-white/10">
-                    {getShopName(p.shopId)}
-                  </div>
-                  {p.category && (
-                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-white/10 backdrop-blur-md text-[10px] text-slate-300">
-                      {p.category}
-                    </div>
-                  )}
-                </div>
-
-                {/* Info & Add to Cart */}
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-white text-base truncate group-hover:text-emerald-400 transition-colors">
-                      {p.name}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                      {p.description || 'Premium curated collection item.'}
-                    </p>
-                  </div>
-
-                  <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-mono">Price</span>
-                      <span className="text-lg font-black text-white">
-                        ${Number(p.price).toFixed(2)}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => handleAddToCart(p)}
-                      disabled={p.stock <= 0}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 font-bold text-xs border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+            {filteredProducts.map((p) => {
+              const pShop = getShopById(p.shopId);
+              const pTheme = getThemeConfig(pShop?.theme);
+              return (
+                <div
+                  key={p.id}
+                  className="glass-card rounded-2xl border border-white/10 overflow-hidden flex flex-col group transition-all duration-300"
+                >
+                  {/* Product Image */}
+                  <div className="relative h-56 bg-slate-900 overflow-hidden">
+                    <img
+                      src={p.imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80'}
+                      alt={p.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div 
+                      className="absolute top-3 left-3 px-2.5 py-1 rounded-md backdrop-blur-md text-[11px] font-semibold border flex items-center gap-1.5 shadow-sm"
+                      style={{
+                        backgroundColor: 'rgba(8, 12, 20, 0.85)',
+                        borderColor: `${pTheme.primaryColor}50`,
+                        color: pTheme.primaryColor,
+                      }}
                     >
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>{p.stock > 0 ? 'Add to Cart' : 'Sold Out'}</span>
-                    </button>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pTheme.primaryColor }} />
+                      <span>{pShop ? pShop.name : 'Merchant'}</span>
+                    </div>
+                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md backdrop-blur-md text-[10px] text-slate-300 border border-white/10 bg-slate-950/70 font-mono">
+                      {pTheme.badgeText}
+                    </div>
+                  </div>
+
+                  {/* Info & Add to Cart */}
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-bold text-white text-base truncate transition-colors">
+                        {p.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                        {p.description || 'Premium curated collection item.'}
+                      </p>
+                    </div>
+
+                    <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase font-mono">Price</span>
+                        <span className="text-lg font-black text-white">
+                          ${Number(p.price).toFixed(2)}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handleAddToCart(p)}
+                        disabled={p.stock <= 0}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none ${pTheme.buttonClass}`}
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>{p.stock > 0 ? 'Add to Cart' : 'Sold Out'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
     </div>
   );
 };
+

@@ -45,7 +45,7 @@ async function seed() {
     console.log(`Created SuperAdmin: ${superAdminEmail}`);
   }
 
-  // 2. Demo Shop (CyberHub)
+  // 2. Demo Shop 1: CyberHub (Theme: cyber-neon)
   let shop = await db.query.shops.findFirst({
     where: eq(shops.slug, 'cyberhub'),
   });
@@ -57,13 +57,61 @@ async function seed() {
         name: 'CyberHub Electronics',
         slug: 'cyberhub',
         description: 'Next-generation tech gadgets, performance hardware, and premium gaming gear.',
+        theme: 'cyber-neon',
         status: 'active',
       })
       .returning();
     shop = newShop;
     console.log(`Created Shop: ${shop.name} (${shop.id})`);
   } else {
-    console.log(`Found existing Shop: ${shop.name} (${shop.id})`);
+    await db.update(shops).set({ theme: 'cyber-neon' }).where(eq(shops.id, shop.id));
+    console.log(`Found existing Shop: ${shop.name} (${shop.id}) with theme cyber-neon`);
+  }
+
+  // 2b. Demo Shop 2: Maison d'Or (Theme: luxury-gold)
+  let luxeShop = await db.query.shops.findFirst({
+    where: eq(shops.slug, 'maison-dor'),
+  });
+
+  if (!luxeShop) {
+    const [newShop] = await db
+      .insert(shops)
+      .values({
+        name: "Maison d'Or Haute Joaillerie",
+        slug: 'maison-dor',
+        description: 'Handcrafted 18k gold timepieces, ethical diamond jewelry, and bespoke artisanal treasures.',
+        theme: 'luxury-gold',
+        status: 'active',
+      })
+      .returning();
+    luxeShop = newShop;
+    console.log(`Created Shop: ${luxeShop.name} (${luxeShop.id})`);
+  } else {
+    await db.update(shops).set({ theme: 'luxury-gold' }).where(eq(shops.id, luxeShop.id));
+    console.log(`Found existing Shop: ${luxeShop.name} with theme luxury-gold`);
+  }
+
+  // 2c. Demo Shop 3: Solstice Creative (Theme: sunset-flare)
+  let sunsetShop = await db.query.shops.findFirst({
+    where: eq(shops.slug, 'solstice-creative'),
+  });
+
+  if (!sunsetShop) {
+    const [newShop] = await db
+      .insert(shops)
+      .values({
+        name: 'Solstice Creative & Apparel',
+        slug: 'solstice-creative',
+        description: 'Vibrant neon street aesthetics, contemporary designer silhouettes, and dynamic graphic apparel.',
+        theme: 'sunset-flare',
+        status: 'active',
+      })
+      .returning();
+    sunsetShop = newShop;
+    console.log(`Created Shop: ${sunsetShop.name} (${sunsetShop.id})`);
+  } else {
+    await db.update(shops).set({ theme: 'sunset-flare' }).where(eq(shops.id, sunsetShop.id));
+    console.log(`Found existing Shop: ${sunsetShop.name} with theme sunset-flare`);
   }
 
   // 3. Shop Admin (admin@cyberhub.com)
@@ -162,6 +210,64 @@ async function seed() {
       },
     ]);
     console.log('Seeded demo products for CyberHub Electronics.');
+  }
+
+  // Demo Products for Maison d'Or (luxury-gold)
+  const existingLuxeProds = await db.query.products.findMany({
+    where: eq(products.shopId, luxeShop.id),
+  });
+
+  if (existingLuxeProds.length === 0) {
+    await db.insert(products).values([
+      {
+        shopId: luxeShop.id,
+        name: 'Aethelgard 18k Rose Gold Chronograph',
+        description: 'Automatic swiss movement, exhibition sapphire caseback, and hand-stitched alligator strap.',
+        price: '2850.00',
+        stock: 5,
+        category: 'Watches',
+        imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&auto=format&fit=crop&q=80',
+      },
+      {
+        shopId: luxeShop.id,
+        name: 'Solitaire Pavé Diamond Pendant',
+        description: 'Brilliant 1.5 carat ethical diamond set in platinum and 18k champagne gold prongs.',
+        price: '1690.00',
+        stock: 8,
+        category: 'Jewelry',
+        imageUrl: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&auto=format&fit=crop&q=80',
+      },
+    ]);
+    console.log("Seeded demo products for Maison d'Or.");
+  }
+
+  // Demo Products for Solstice Creative (sunset-flare)
+  const existingSunsetProds = await db.query.products.findMany({
+    where: eq(products.shopId, sunsetShop.id),
+  });
+
+  if (existingSunsetProds.length === 0) {
+    await db.insert(products).values([
+      {
+        shopId: sunsetShop.id,
+        name: 'Hyperion Sunset Gradient Windbreaker',
+        description: 'Reflective weatherproof technical shell with vibrant chromatic sunset dye finish.',
+        price: '185.00',
+        stock: 30,
+        category: 'Apparel',
+        imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&auto=format&fit=crop&q=80',
+      },
+      {
+        shopId: sunsetShop.id,
+        name: 'Neo-Tokyo Graphic Heavyweight Hoodie',
+        description: '500 GSM French terry cotton with high-density screenprinted sunset visuals.',
+        price: '120.00',
+        stock: 50,
+        category: 'Streetwear',
+        imageUrl: 'https://images.unsplash.com/photo-1578587018452-892bacefd3f2?w=800&auto=format&fit=crop&q=80',
+      },
+    ]);
+    console.log('Seeded demo products for Solstice Creative.');
   }
 
   console.log('----------------------------------------------------');
