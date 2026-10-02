@@ -9,7 +9,8 @@ import {
   ShoppingBag, 
   Store,
   Palette,
-  ExternalLink
+  ExternalLink,
+  Edit3
 } from 'lucide-react';
 import { superAdminService, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
@@ -38,14 +39,24 @@ export const SuperAdminDashboard: React.FC = () => {
 
   // Modals state
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isEditShopModalOpen, setIsEditShopModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
-  // Shop Form
+  // Shop Form (New)
   const [shopName, setShopName] = useState('');
   const [shopSlug, setShopSlug] = useState('');
   const [shopDescription, setShopDescription] = useState('');
   const [shopTheme, setShopTheme] = useState<ShopThemeId>('cyber-neon');
   const [submittingShop, setSubmittingShop] = useState(false);
+
+  // Shop Form (Edit existing)
+  const [editingShopId, setEditingShopId] = useState('');
+  const [editShopName, setEditShopName] = useState('');
+  const [editShopSlug, setEditShopSlug] = useState('');
+  const [editShopDescription, setEditShopDescription] = useState('');
+  const [editShopTheme, setEditShopTheme] = useState<ShopThemeId>('cyber-neon');
+  const [editShopStatus, setEditShopStatus] = useState<string>('active');
+  const [submittingEditShop, setSubmittingEditShop] = useState(false);
 
   // Admin Form
   const [adminEmail, setAdminEmail] = useState('');
@@ -113,6 +124,41 @@ export const SuperAdminDashboard: React.FC = () => {
       fetchData();
     } catch (err: any) {
       error(err.response?.data?.error || 'Failed to update shop theme');
+    }
+  };
+
+  const openEditShopModal = (s: Shop) => {
+    setEditingShopId(s.id);
+    setEditShopName(s.name);
+    setEditShopSlug(s.slug);
+    setEditShopDescription(s.description || '');
+    setEditShopTheme((s.theme || 'cyber-neon') as ShopThemeId);
+    setEditShopStatus(s.status || 'active');
+    setIsEditShopModalOpen(true);
+  };
+
+  const handleSaveEditShop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editShopName.trim()) {
+      error('Shop name is required');
+      return;
+    }
+
+    setSubmittingEditShop(true);
+    try {
+      await superAdminService.updateShop(editingShopId, {
+        name: editShopName.trim(),
+        description: editShopDescription.trim() || null,
+        theme: editShopTheme,
+        status: editShopStatus,
+      });
+      success(`Updated "${editShopName}" information and theme successfully!`);
+      setIsEditShopModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      error(err.response?.data?.error || 'Failed to update store');
+    } finally {
+      setSubmittingEditShop(false);
     }
   };
 
@@ -304,24 +350,50 @@ export const SuperAdminDashboard: React.FC = () => {
                   <div key={s.id} className="py-3.5 flex items-center justify-between group">
                     <div className="min-w-0 pr-4">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-semibold text-white truncate text-sm">{s.name}</h4>
+                        <button
+                          type="button"
+                          onClick={() => openEditShopModal(s)}
+                          className="font-semibold text-white hover:text-purple-300 text-left truncate text-sm transition-colors cursor-pointer flex items-center gap-1"
+                          title="Click to edit store information & theme"
+                        >
+                          {s.name}
+                        </button>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-slate-300 border border-white/10 font-mono">
                           /{s.slug}
                         </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${themeConfig.pillBadgeClass}`}>
+                        <button
+                          type="button"
+                          onClick={() => openEditShopModal(s)}
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 cursor-pointer hover:opacity-90 ${themeConfig.pillBadgeClass}`}
+                          title="Click to change theme"
+                        >
                           <Palette className="w-2.5 h-2.5" />
                           {themeConfig.badgeText}
-                        </span>
+                        </button>
+                        {s.status === 'suspended' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
+                            Suspended
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5 max-w-sm">
                         {s.description || 'No description provided'}
                       </p>
                       <div className="mt-1 flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => openEditShopModal(s)}
+                          className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          Edit Details & Theme
+                        </button>
+                        <span className="text-slate-600">•</span>
                         <a
                           href={`/store/${s.slug}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                          className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
                         >
                           <ExternalLink className="w-3 h-3" />
                           Visit Storefront
@@ -329,6 +401,16 @@ export const SuperAdminDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => openEditShopModal(s)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 border border-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                        title="Edit Store Information & Theme"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Edit</span>
+                      </button>
+
                       {/* Theme quick switcher */}
                       <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
                         <Palette className="w-3 h-3 text-slate-400" />
@@ -348,7 +430,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
                       <button
                         onClick={() => handleDeleteShop(s.id, s.name)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                         title="Delete Shop"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -549,6 +631,164 @@ export const SuperAdminDashboard: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 disabled:opacity-50"
                 >
                   {submittingShop ? 'Applying Theme & Creating...' : 'Create Store & Apply Theme'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Existing Shop & Theme */}
+      {isEditShopModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-lg glass-panel rounded-2xl p-6 border border-white/10 shadow-2xl animate-modal-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-purple-400" />
+                  Edit Store Information & Theme
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Update store details, status, or reassign visual theme for this shop.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveEditShop} className="space-y-4">
+              {/* 1. Shop Name */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  1. Shop Name <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editShopName}
+                  onChange={(e) => setEditShopName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* 2. Store URL Slug */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  2. Store URL Slug (Unique Identifier)
+                </label>
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden px-3 py-2 text-slate-400 text-sm font-mono">
+                  <span className="text-xs text-slate-500">domain.com/store/</span>
+                  <span className="text-white font-semibold ml-1">{editShopSlug}</span>
+                </div>
+              </div>
+
+              {/* 3. Description */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  3. Description <span className="text-slate-500">(Optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Boutique description..."
+                  value={editShopDescription}
+                  onChange={(e) => setEditShopDescription(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* 4. Fourth Field: Store Theme Dropdown Box */}
+              <div>
+                <label htmlFor="edit-store-theme-select" className="flex items-center justify-between text-xs font-medium text-slate-300 mb-1.5">
+                  <span className="flex items-center gap-1.5 font-semibold text-white">
+                    <Palette className="w-3.5 h-3.5 text-purple-400" />
+                    4. Store Theme
+                  </span>
+                  <span className="text-[11px] text-purple-300 font-mono">Select theme from dropdown</span>
+                </label>
+
+                {/* Dropdown Box to select theme */}
+                <select
+                  id="edit-store-theme-select"
+                  value={editShopTheme}
+                  onChange={(e) => setEditShopTheme(e.target.value as ShopThemeId)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-purple-500/30 text-white text-sm focus:outline-none focus:border-purple-400 cursor-pointer shadow-inner transition-colors"
+                >
+                  {THEME_LIST.map((th) => (
+                    <option key={th.id} value={th.id} className="bg-slate-900 text-white py-1">
+                      {th.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Theme Visual Preview Box for this Particular Shop */}
+                {(() => {
+                  const activeTh = getThemeConfig(editShopTheme);
+                  return (
+                    <div className="mt-2.5 p-3 rounded-xl border border-white/10 bg-white/[0.03] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/15 shadow-sm"
+                            style={{ backgroundColor: activeTh.primaryColor }}
+                            title={`Primary Color: ${activeTh.primaryColor}`}
+                          />
+                          <span
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/15 shadow-sm"
+                            style={{ backgroundColor: activeTh.accentColor }}
+                            title={`Accent Color: ${activeTh.accentColor}`}
+                          />
+                          <span
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/15 shadow-sm"
+                            style={{ backgroundColor: activeTh.bgDark }}
+                            title={`Canvas Background: ${activeTh.bgDark}`}
+                          />
+                          <span className="text-xs font-bold text-white ml-1">
+                            {activeTh.badgeText}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${activeTh.pillBadgeClass}`}>
+                          Selected Theme
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        {activeTh.description}
+                      </p>
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Palette Tone:</span>
+                        <span className="font-mono text-[10px] text-purple-300">{activeTh.tagline}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* 5. Store Status */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  5. Store Status
+                </label>
+                <select
+                  value={editShopStatus}
+                  onChange={(e) => setEditShopStatus(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer"
+                >
+                  <option value="active">Active (Visible on public marketplace)</option>
+                  <option value="suspended">Suspended (Access restricted)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsEditShopModalOpen(false)}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEditShop}
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                >
+                  {submittingEditShop ? 'Saving Changes...' : 'Save Changes & Apply Theme'}
                 </button>
               </div>
             </form>

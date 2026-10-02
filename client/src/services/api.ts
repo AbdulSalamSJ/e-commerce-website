@@ -15,6 +15,7 @@ export interface Shop {
   logoUrl?: string | null;
   bannerUrl?: string | null;
   theme?: 'cyber-neon' | 'luxury-gold' | 'sunset-flare' | string;
+  status?: 'active' | 'suspended' | string;
   isActive: boolean;
   createdAt: string;
 }
