@@ -207,7 +207,7 @@ export const SuperAdminDashboard: React.FC = () => {
             className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm shadow-lg shadow-purple-600/25 flex items-center gap-2 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            Onboard Shop
+            New Store
           </button>
           <button
             onClick={() => setIsAdminModalOpen(true)}
@@ -417,8 +417,11 @@ export const SuperAdminDashboard: React.FC = () => {
             </p>
 
             <form onSubmit={handleCreateShop} className="space-y-4">
+              {/* 1. First Field: Shop Name */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Shop Name</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  1. Shop Name <span className="text-rose-400">*</span>
+                </label>
                 <input
                   type="text"
                   required
@@ -434,8 +437,11 @@ export const SuperAdminDashboard: React.FC = () => {
                 />
               </div>
 
+              {/* 2. Second Field: Store URL Slug */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Store URL Slug</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  2. Store URL Slug <span className="text-rose-400">*</span>
+                </label>
                 <div className="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden px-3">
                   <span className="text-xs text-slate-500">domain.com/store/</span>
                   <input
@@ -449,20 +455,36 @@ export const SuperAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Theme Selector Dropdown */}
+              {/* 3. Third Field: Description (Optional) */}
               <div>
-                <label className="flex items-center justify-between text-xs font-medium text-slate-300 mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <Palette className="w-3.5 h-3.5 text-purple-400" />
-                    Shop Theme
-                  </span>
-                  <span className="text-[10px] text-purple-300 font-mono">Select Theme from Dropdown</span>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  3. Description <span className="text-slate-500">(Optional)</span>
                 </label>
+                <textarea
+                  rows={2}
+                  placeholder="Premium electronics and bespoke gadgets..."
+                  value={shopDescription}
+                  onChange={(e) => setShopDescription(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* 4. Fourth Field: Store Theme & Dropdown Selection Box */}
+              <div>
+                <label htmlFor="store-theme-select" className="flex items-center justify-between text-xs font-medium text-slate-300 mb-1.5">
+                  <span className="flex items-center gap-1.5 font-semibold text-white">
+                    <Palette className="w-3.5 h-3.5 text-purple-400" />
+                    4. Store Theme
+                  </span>
+                  <span className="text-[11px] text-purple-300 font-mono">Select theme from dropdown</span>
+                </label>
+
+                {/* Dropdown Box to select theme */}
                 <select
-                  id="shop-theme-select"
+                  id="store-theme-select"
                   value={shopTheme}
                   onChange={(e) => setShopTheme(e.target.value as ShopThemeId)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer shadow-inner"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-purple-500/30 text-white text-sm focus:outline-none focus:border-purple-400 cursor-pointer shadow-inner transition-colors"
                 >
                   {THEME_LIST.map((th) => (
                     <option key={th.id} value={th.id} className="bg-slate-900 text-white py-1">
@@ -471,59 +493,46 @@ export const SuperAdminDashboard: React.FC = () => {
                   ))}
                 </select>
 
-                {/* Theme Visual Preview Card */}
+                {/* Theme Visual Preview Box for this Particular Shop */}
                 {(() => {
                   const activeTh = getThemeConfig(shopTheme);
                   return (
-                    <div className="mt-2.5 p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
+                    <div className="mt-2.5 p-3 rounded-xl border border-white/10 bg-white/[0.03] space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span
-                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/10 shadow-sm"
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/15 shadow-sm"
                             style={{ backgroundColor: activeTh.primaryColor }}
-                            title={`Primary: ${activeTh.primaryColor}`}
+                            title={`Primary Color: ${activeTh.primaryColor}`}
                           />
                           <span
-                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/10 shadow-sm"
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/15 shadow-sm"
                             style={{ backgroundColor: activeTh.accentColor }}
-                            title={`Accent: ${activeTh.accentColor}`}
+                            title={`Accent Color: ${activeTh.accentColor}`}
                           />
                           <span
-                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/10 shadow-sm"
+                            className="w-3.5 h-3.5 rounded-full ring-2 ring-white/15 shadow-sm"
                             style={{ backgroundColor: activeTh.bgDark }}
-                            title={`Canvas: ${activeTh.bgDark}`}
+                            title={`Canvas Background: ${activeTh.bgDark}`}
                           />
                           <span className="text-xs font-bold text-white ml-1">
                             {activeTh.badgeText}
                           </span>
                         </div>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${activeTh.pillBadgeClass}`}>
-                          Active Theme
+                          Theme To Apply
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 leading-relaxed">
                         {activeTh.description}
                       </p>
                       <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400">Palette:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-slate-400">{activeTh.tagline}</span>
-                        </div>
+                        <span className="text-slate-400">Palette Tone:</span>
+                        <span className="font-mono text-[10px] text-purple-300">{activeTh.tagline}</span>
                       </div>
                     </div>
                   );
                 })()}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Description (Optional)</label>
-                <textarea
-                  rows={3}
-                  placeholder="Premium electronics and bespoke gadgets..."
-                  value={shopDescription}
-                  onChange={(e) => setShopDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500"
-                />
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -539,7 +548,7 @@ export const SuperAdminDashboard: React.FC = () => {
                   disabled={submittingShop}
                   className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 disabled:opacity-50"
                 >
-                  {submittingShop ? 'Onboarding...' : 'Create Store'}
+                  {submittingShop ? 'Applying Theme & Creating...' : 'Create Store & Apply Theme'}
                 </button>
               </div>
             </form>
