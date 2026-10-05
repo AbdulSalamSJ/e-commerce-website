@@ -61,9 +61,11 @@ export const CustomerStore: React.FC = () => {
 
   const filteredProducts = products.filter((p) => {
     const matchesShop = selectedShopId === 'all' || p.shopId === selectedShopId;
+    const prodShop = shops.find((s) => s.id === p.shopId);
     const matchesCategory =
       selectedCategory.toLowerCase() === 'all' ||
-      (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase());
+      (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase()) ||
+      (prodShop?.category && prodShop.category.toLowerCase() === selectedCategory.toLowerCase());
     const matchesSearch =
       !searchQuery.trim() ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

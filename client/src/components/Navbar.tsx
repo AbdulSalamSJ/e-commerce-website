@@ -17,17 +17,42 @@ import {
   Gem,
   Shirt,
   Tag,
-  Cpu
+  Cpu,
+  Coffee,
+  Activity,
+  Heart,
+  BookOpen,
+  Home,
+  Palette
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { customerService } from '../services/api';
+import { customerService, Shop, Product } from '../services/api';
 
 interface CategoryItem {
   id: string;
   name: string;
   icon: React.ComponentType<{ className?: string }>;
 }
+
+const getCategoryIcon = (name: string): React.ComponentType<{ className?: string }> => {
+  const lower = name.toLowerCase();
+  if (lower === 'all' || lower.includes('all product')) return Sparkles;
+  if (lower.includes('snack') || lower.includes('food') || lower.includes('gourmet') || lower.includes('fruit') || lower.includes('grocery') || lower.includes('drink')) return Coffee;
+  if (lower.includes('audio') || lower.includes('sound') || lower.includes('headphone')) return Headphones;
+  if (lower.includes('game') || lower.includes('gaming') || lower.includes('vr')) return Gamepad2;
+  if (lower.includes('display') || lower.includes('screen') || lower.includes('monitor') || lower.includes('tv')) return Monitor;
+  if (lower.includes('watch') || lower.includes('clock') || lower.includes('time')) return Watch;
+  if (lower.includes('jewel') || lower.includes('gem') || lower.includes('luxury') || lower.includes('gold') || lower.includes('diamond')) return Gem;
+  if (lower.includes('apparel') || lower.includes('fashion') || lower.includes('cloth') || lower.includes('shirt') || lower.includes('streetwear')) return Shirt;
+  if (lower.includes('tech') || lower.includes('electron') || lower.includes('gadget') || lower.includes('cpu') || lower.includes('hardware')) return Cpu;
+  if (lower.includes('sport') || lower.includes('outdoor') || lower.includes('fitness')) return Activity;
+  if (lower.includes('beauty') || lower.includes('health') || lower.includes('cosmetic') || lower.includes('wellness')) return Heart;
+  if (lower.includes('book') || lower.includes('media') || lower.includes('library')) return BookOpen;
+  if (lower.includes('home') || lower.includes('living') || lower.includes('decor') || lower.includes('furniture')) return Home;
+  if (lower.includes('art') || lower.includes('collectible')) return Palette;
+  return Tag;
+};
 
 const DEFAULT_CATEGORIES: CategoryItem[] = [
   { id: 'all', name: 'All Products', icon: Sparkles },
@@ -47,31 +72,119 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  const fetchCategoriesData = async () => {
+    try {
+      const [shopsData, prodsData] = await Promise.all([
+        customerService.getShops(),
+        customerService.getProducts(),
+      ]);
+      const loadedShops: Shop[] = Array.isArray(shopsData) ? shopsData : (shopsData?.shops || []);
+      const loadedProds: Product[] = Array.isArray(prodsData) ? prodsData : (prodsData?.products || []);
+      setShops(loadedShops);
+      setProducts(loadedProds);
+    } catch (err) {
+      console.error('Error fetching categories data for Navbar:', err);
+    }
+  };
 
   useEffect(() => {
-    // Dynamically fetch any additional categories from catalog products
-    customerService.getProducts()
-      .then((res) => {
-        const prods = Array.isArray(res) ? res : res?.products || [];
-        const dbCategories = Array.from(
-          new Set(prods.map((p: any) => p.category).filter(Boolean))
-        ) as string[];
+    fetchCategoriesData();
+  }, [location.pathname]);
 
-        setCategories((prev) => {
-          const merged = [...prev];
-          for (const cat of dbCategories) {
-            if (!merged.some((m) => m.id.toLowerCase() === cat.toLowerCase())) {
-              merged.push({ id: cat, name: cat, icon: Tag });
-            }
-          }
-          return merged;
+  const isStorePage = location.pathname.startsWith('/store/');
+  const storeSlug = isStorePage
+    ? location.pathname.replace('/store/', '').split('/')[0].split('?')[0]
+    : null;
+  const currentShop = storeSlug ? shops.find((s) => s.slug === storeSlug) : null;
+
+  // Build categories to display based on store context
+  const displayedCategories: CategoryItem[] = React.useMemo(() => {
+    if (currentShop) {
+      // RESPECTIVE STORE CATEGORIES (Updated by Super Admin)
+      const storeCats: CategoryItem[] = [
+        { id: 'all', name: 'All Products', icon: Sparkles },
+      ];
+
+      // 1. Add store category updated by Super Admin (e.g. Snacks)
+      if (currentShop.category && currentShop.category.trim()) {
+        storeCats.push({
+          id: currentShop.category,
+          name: currentShop.category,
+          icon: getCategoryIcon(currentShop.category),
         });
-      })
-      .catch((err) => {
-        console.error('Error fetching categories for second header:', err);
-      });
-  }, []);
+      }
+
+      // 2. Add product categories belonging to this specific store
+      const storeProds = products.filter((p) => p.shopId === currentShop.id);
+      const prodCats = Array.from(
+        new Set(storeProds.map((p) => p.category).filter(Boolean))
+      ) as string[];
+
+      for (const cat of prodCats) {
+        if (!storeCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
+          storeCats.push({
+            id: cat,
+            name: cat,
+            icon: getCategoryIcon(cat),
+          });
+        }
+      }
+
+      return storeCats;
+    }
+
+    // ALL STORES / MARKETPLACE CATEGORIES (Super Admin + Catalog)
+    const allCats: CategoryItem[] = [
+      { id: 'all', name: 'All Products', icon: Sparkles },
+    ];
+
+    // 1. All Store categories updated by Super Admin across active shops
+    const superAdminStoreCats = Array.from(
+      new Set(
+        shops
+          .map((s) => s.category)
+          .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+      )
+    );
+
+    for (const cat of superAdminStoreCats) {
+      if (!allCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
+        allCats.push({
+          id: cat,
+          name: cat,
+          icon: getCategoryIcon(cat),
+        });
+      }
+    }
+
+    // 2. All product categories in catalog
+    const prodCats = Array.from(
+      new Set(
+        products
+          .map((p) => p.category)
+          .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+      )
+    );
+
+    for (const cat of prodCats) {
+      if (!allCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
+        allCats.push({
+          id: cat,
+          name: cat,
+          icon: getCategoryIcon(cat),
+        });
+      }
+    }
+
+    if (allCats.length <= 1) {
+      return DEFAULT_CATEGORIES;
+    }
+
+    return allCats;
+  }, [currentShop, shops, products]);
 
   const handleLogout = () => {
     logout();
@@ -243,11 +356,20 @@ export const Navbar: React.FC = () => {
           {/* Scrollable category list */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 flex-1">
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider pr-3 border-r border-white/10 shrink-0">
-              <Layers className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Categories</span>
+              {currentShop ? (
+                <>
+                  <Store className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="text-purple-300 max-w-[130px] truncate">{currentShop.name}</span>
+                </>
+              ) : (
+                <>
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Categories</span>
+                </>
+              )}
             </div>
 
-            {categories.map((cat) => {
+            {displayedCategories.map((cat) => {
               const Icon = cat.icon;
               const isSelected =
                 (currentCategory === 'all' && cat.id.toLowerCase() === 'all') ||
@@ -274,7 +396,7 @@ export const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 shrink-0">
             <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-300 font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live Catalog
+              {currentShop ? `${currentShop.category || 'Store'} Category` : 'Live Catalog'}
             </span>
           </div>
         </div>

@@ -19,6 +19,7 @@ export async function listActiveShops(_req: Request, res: Response): Promise<voi
         logoUrl: true,
         bannerUrl: true,
         theme: true,
+        category: true,
       },
     });
 
