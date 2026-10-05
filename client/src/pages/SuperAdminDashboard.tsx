@@ -59,7 +59,9 @@ export const SuperAdminDashboard: React.FC = () => {
 
   // Category Management & Insert
   const [availableCategories, setAvailableCategories] = useState<string[]>(PRESET_CATEGORIES);
+  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [isEditAddingNewCat, setIsEditAddingNewCat] = useState(false);
   const [editNewCategoryInput, setEditNewCategoryInput] = useState('');
 
   // Shop Form (New)
@@ -145,12 +147,14 @@ export const SuperAdminDashboard: React.FC = () => {
     if (isEdit) {
       setEditShopCategory(trimmed);
       setEditNewCategoryInput('');
+      setIsEditAddingNewCat(false);
     } else {
       setShopCategory(trimmed);
       setNewCategoryInput('');
+      setIsAddingNewCat(false);
     }
 
-    success(`Category "${trimmed}" inserted and set as active!`);
+    success(`Category "${trimmed}" set!`);
   };
 
   const handleCreateShop = async (e: React.FormEvent) => {
@@ -176,6 +180,8 @@ export const SuperAdminDashboard: React.FC = () => {
       setShopSlug('');
       setShopDescription('');
       setShopCategory('Electronics & Tech');
+      setIsAddingNewCat(false);
+      setNewCategoryInput('');
       setShopTheme('cyber-neon');
       fetchData();
     } catch (err: any) {
@@ -201,6 +207,8 @@ export const SuperAdminDashboard: React.FC = () => {
     setEditShopSlug(s.slug);
     setEditShopDescription(s.description || '');
     setEditShopCategory(s.category || 'General');
+    setIsEditAddingNewCat(false);
+    setEditNewCategoryInput('');
     setEditShopTheme((s.theme || 'cyber-neon') as ShopThemeId);
     setEditShopStatus(s.status || 'active');
     setIsEditShopModalOpen(true);
@@ -631,97 +639,86 @@ export const SuperAdminDashboard: React.FC = () => {
               </div>
 
               {/* 4. Fourth Field: Store Category */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-white">
-                    <Tag className="w-3.5 h-3.5 text-purple-400" />
-                    4. Store Category <span className="text-rose-400">*</span>
-                  </label>
-                  <span className="text-[11px] text-purple-300 font-mono">Insert custom or select preset</span>
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  4. Store Category <span className="text-rose-400">*</span>
+                </label>
 
-                {/* Selected Active Category Input */}
-                <div>
+                {!isAddingNewCat ? (
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Electronics & Tech"
+                    <select
                       value={shopCategory}
-                      onChange={(e) => setShopCategory(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-purple-500/30 text-white text-sm focus:outline-none focus:border-purple-400 transition-colors font-medium shadow-inner"
-                    />
-                    {shopCategory && (
-                      <div className="px-2.5 py-1.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/25 text-xs font-semibold flex items-center gap-1 shrink-0">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        Selected
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Insert / Add Category Bar */}
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/10 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium">
-                    <span className="flex items-center gap-1.5">
-                      <Plus className="w-3.5 h-3.5 text-purple-400" />
-                      Add New Category:
-                    </span>
-                    <span className="text-[10px] text-slate-400">Press Enter or click Add</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Type category name to insert..."
-                      value={newCategoryInput}
-                      onChange={(e) => setNewCategoryInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleInsertCategory(false);
+                      onChange={(e) => {
+                        if (e.target.value === '__add_new__') {
+                          setIsAddingNewCat(true);
+                          setNewCategoryInput('');
+                        } else {
+                          setShopCategory(e.target.value);
                         }
                       }}
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-purple-400 placeholder-slate-500 transition-colors"
-                    />
+                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer shadow-inner"
+                    >
+                      {availableCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                      <option value="__add_new__">+ Enter New Category...</option>
+                    </select>
+
                     <button
                       type="button"
-                      onClick={() => handleInsertCategory(false)}
-                      disabled={!newCategoryInput.trim()}
-                      className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-purple-600/30 transition-all cursor-pointer whitespace-nowrap"
+                      onClick={() => {
+                        setIsAddingNewCat(true);
+                        setNewCategoryInput('');
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
+                      title="Enter new category"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add
                     </button>
                   </div>
-                </div>
-
-                {/* Available Categories Pills */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Available Categories ({availableCategories.length}):</span>
-                    <span className="text-[10px] text-purple-300">Click pill to select</span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      autoFocus
+                      required
+                      placeholder="Enter new category..."
+                      value={newCategoryInput}
+                      onChange={(e) => {
+                        setNewCategoryInput(e.target.value);
+                        setShopCategory(e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleInsertCategory(false);
+                        } else if (e.key === 'Escape') {
+                          setIsAddingNewCat(false);
+                        }
+                      }}
+                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-purple-500 text-white text-sm focus:outline-none focus:border-purple-400 placeholder-slate-500 shadow-inner"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleInsertCategory(false)}
+                      disabled={!newCategoryInput.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Done
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingNewCat(false)}
+                      className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
-                    {availableCategories.map((cat) => {
-                      const isSelected = shopCategory.toLowerCase() === cat.toLowerCase();
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setShopCategory(cat)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
-                            isSelected
-                              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-400/40 font-semibold ring-1 ring-purple-400/50'
-                              : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
-                          }`}
-                        >
-                          {isSelected && <Check className="w-2.5 h-2.5 text-emerald-300" />}
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* 5. Fifth Field: Store Theme & Dropdown Selection Box */}
@@ -868,97 +865,86 @@ export const SuperAdminDashboard: React.FC = () => {
               </div>
 
               {/* 4. Store Category */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-white">
-                    <Tag className="w-3.5 h-3.5 text-purple-400" />
-                    4. Store Category <span className="text-rose-400">*</span>
-                  </label>
-                  <span className="text-[11px] text-purple-300 font-mono">Insert custom or select preset</span>
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  4. Store Category <span className="text-rose-400">*</span>
+                </label>
 
-                {/* Selected Active Category Input */}
-                <div>
+                {!isEditAddingNewCat ? (
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Electronics & Tech"
+                    <select
                       value={editShopCategory}
-                      onChange={(e) => setEditShopCategory(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-purple-500/30 text-white text-sm focus:outline-none focus:border-purple-400 transition-colors font-medium shadow-inner"
-                    />
-                    {editShopCategory && (
-                      <div className="px-2.5 py-1.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/25 text-xs font-semibold flex items-center gap-1 shrink-0">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        Selected
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Insert / Add Category Bar */}
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/10 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium">
-                    <span className="flex items-center gap-1.5">
-                      <Plus className="w-3.5 h-3.5 text-purple-400" />
-                      Add New Category:
-                    </span>
-                    <span className="text-[10px] text-slate-400">Press Enter or click Add</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Type category name to insert..."
-                      value={editNewCategoryInput}
-                      onChange={(e) => setEditNewCategoryInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleInsertCategory(true);
+                      onChange={(e) => {
+                        if (e.target.value === '__add_new__') {
+                          setIsEditAddingNewCat(true);
+                          setEditNewCategoryInput('');
+                        } else {
+                          setEditShopCategory(e.target.value);
                         }
                       }}
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-purple-400 placeholder-slate-500 transition-colors"
-                    />
+                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer shadow-inner"
+                    >
+                      {availableCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                      <option value="__add_new__">+ Enter New Category...</option>
+                    </select>
+
                     <button
                       type="button"
-                      onClick={() => handleInsertCategory(true)}
-                      disabled={!editNewCategoryInput.trim()}
-                      className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-purple-600/30 transition-all cursor-pointer whitespace-nowrap"
+                      onClick={() => {
+                        setIsEditAddingNewCat(true);
+                        setEditNewCategoryInput('');
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
+                      title="Enter new category"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add
                     </button>
                   </div>
-                </div>
-
-                {/* Available Categories Pills */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Available Categories ({availableCategories.length}):</span>
-                    <span className="text-[10px] text-purple-300">Click pill to select</span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      autoFocus
+                      required
+                      placeholder="Enter new category..."
+                      value={editNewCategoryInput}
+                      onChange={(e) => {
+                        setEditNewCategoryInput(e.target.value);
+                        setEditShopCategory(e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleInsertCategory(true);
+                        } else if (e.key === 'Escape') {
+                          setIsEditAddingNewCat(false);
+                        }
+                      }}
+                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-purple-500 text-white text-sm focus:outline-none focus:border-purple-400 placeholder-slate-500 shadow-inner"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleInsertCategory(true)}
+                      disabled={!editNewCategoryInput.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Done
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditAddingNewCat(false)}
+                      className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
-                    {availableCategories.map((cat) => {
-                      const isSelected = editShopCategory.toLowerCase() === cat.toLowerCase();
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setEditShopCategory(cat)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
-                            isSelected
-                              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-400/40 font-semibold ring-1 ring-purple-400/50'
-                              : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
-                          }`}
-                        >
-                          {isSelected && <Check className="w-2.5 h-2.5 text-emerald-300" />}
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* 5. Fifth Field: Store Theme Dropdown Box */}
