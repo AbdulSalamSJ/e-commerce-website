@@ -162,6 +162,26 @@ export const SuperAdminDashboard: React.FC = () => {
     success(`Category "${trimmed}" set!`);
   };
 
+  const handleRemoveCategory = (isEdit: boolean = false) => {
+    const targetCat = isEdit ? editShopCategory : shopCategory;
+    if (!targetCat) return;
+
+    const updated = availableCategories.filter(
+      (c) => c.toLowerCase() !== targetCat.toLowerCase()
+    );
+
+    setAvailableCategories(updated);
+
+    const fallback = updated.length > 0 ? updated[0] : 'General';
+    if (isEdit) {
+      setEditShopCategory(fallback);
+    } else {
+      setShopCategory(fallback);
+    }
+
+    success(`Category "${targetCat}" removed from list`);
+  };
+
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopName || !shopSlug) {
@@ -211,7 +231,11 @@ export const SuperAdminDashboard: React.FC = () => {
     setEditShopName(s.name);
     setEditShopSlug(s.slug);
     setEditShopDescription(s.description || '');
-    setEditShopCategory(s.category || 'General');
+    const currentCat = s.category || 'General';
+    setEditShopCategory(currentCat);
+    if (currentCat && !availableCategories.some((c) => c.toLowerCase() === currentCat.toLowerCase())) {
+      setAvailableCategories((prev) => [currentCat, ...prev]);
+    }
     setIsEditAddingNewCat(false);
     setEditNewCategoryInput('');
     setEditShopTheme((s.theme || 'cyber-neon') as ShopThemeId);
@@ -725,6 +749,17 @@ export const SuperAdminDashboard: React.FC = () => {
                       <Plus className="w-3.5 h-3.5" />
                       Add
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(false)}
+                      disabled={availableCategories.length === 0}
+                      className="px-3 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap disabled:opacity-40"
+                      title={`Remove "${shopCategory}" from options`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -985,6 +1020,17 @@ export const SuperAdminDashboard: React.FC = () => {
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(true)}
+                      disabled={availableCategories.length === 0}
+                      className="px-3 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap disabled:opacity-40"
+                      title={`Remove "${editShopCategory}" from options`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
                     </button>
                   </div>
                 ) : (
