@@ -12,7 +12,10 @@ import {
   ExternalLink,
   Edit3,
   Tag,
-  Check
+  Check,
+  Maximize2,
+  Minimize2,
+  X
 } from 'lucide-react';
 import { superAdminService, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
@@ -54,7 +57,9 @@ export const SuperAdminDashboard: React.FC = () => {
 
   // Modals state
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isShopModalFullScreen, setIsShopModalFullScreen] = useState(false);
   const [isEditShopModalOpen, setIsEditShopModalOpen] = useState(false);
+  const [isEditModalFullScreen, setIsEditModalFullScreen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   // Category Management & Insert
@@ -578,12 +583,54 @@ export const SuperAdminDashboard: React.FC = () => {
 
       {/* Modal: Onboard Shop */}
       {isShopModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-lg glass-panel rounded-2xl p-6 border border-white/10 shadow-2xl animate-modal-in">
-            <h3 className="text-xl font-bold text-white mb-2">Onboard New Merchant Store</h3>
-            <p className="text-xs text-slate-400 mb-6">
-              Establish a dedicated multi-tenant entity for selling products.
-            </p>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm ${isShopModalFullScreen ? 'p-2 sm:p-4' : 'p-4'}`}>
+          <div className={`w-full glass-panel border border-white/10 shadow-2xl animate-modal-in overflow-y-auto transition-all duration-200 ${
+            isShopModalFullScreen 
+              ? 'h-[96vh] max-w-5xl rounded-2xl p-6 sm:p-8' 
+              : 'max-w-xl max-h-[92vh] rounded-2xl p-6'
+          }`}>
+            <div className="flex items-start justify-between pb-3 border-b border-white/10 mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Store className="w-5 h-5 text-purple-400" />
+                  Onboard New Merchant Store
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Establish a dedicated multi-tenant entity for selling products.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 ml-4">
+                <button
+                  type="button"
+                  onClick={() => setIsShopModalFullScreen(!isShopModalFullScreen)}
+                  className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title={isShopModalFullScreen ? "Exit Full Screen" : "Show Full Screen"}
+                >
+                  {isShopModalFullScreen ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Normal Size</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Full Screen</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsShopModalOpen(false);
+                    setIsShopModalFullScreen(false);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
 
             <form onSubmit={handleCreateShop} className="space-y-4">
               {/* 1. First Field: Shop Name */}
@@ -810,9 +857,13 @@ export const SuperAdminDashboard: React.FC = () => {
 
       {/* Modal: Edit Existing Shop & Theme */}
       {isEditShopModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="w-full max-w-lg glass-panel rounded-2xl p-6 border border-white/10 shadow-2xl animate-modal-in max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm ${isEditModalFullScreen ? 'p-2 sm:p-4' : 'p-4'}`}>
+          <div className={`w-full glass-panel border border-white/10 shadow-2xl animate-modal-in overflow-y-auto transition-all duration-200 ${
+            isEditModalFullScreen 
+              ? 'h-[96vh] max-w-5xl rounded-2xl p-6 sm:p-8' 
+              : 'max-w-xl max-h-[92vh] rounded-2xl p-6'
+          }`}>
+            <div className="flex items-start justify-between pb-3 border-b border-white/10 mb-4">
               <div>
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                   <Edit3 className="w-5 h-5 text-purple-400" />
@@ -821,6 +872,37 @@ export const SuperAdminDashboard: React.FC = () => {
                 <p className="text-xs text-slate-400 mt-0.5">
                   Update store details, status, or reassign visual theme for this shop.
                 </p>
+              </div>
+              <div className="flex items-center gap-1.5 ml-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalFullScreen(!isEditModalFullScreen)}
+                  className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title={isEditModalFullScreen ? "Exit Full Screen" : "Show Full Screen"}
+                >
+                  {isEditModalFullScreen ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Normal Size</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Full Screen</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditShopModalOpen(false);
+                    setIsEditModalFullScreen(false);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
