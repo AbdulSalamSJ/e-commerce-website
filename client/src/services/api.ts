@@ -15,6 +15,7 @@ export interface Shop {
   logoUrl?: string | null;
   bannerUrl?: string | null;
   theme?: 'cyber-neon' | 'luxury-gold' | 'sunset-flare' | string;
+  category?: string | null;
   status?: 'active' | 'suspended' | string;
   isActive: boolean;
   createdAt: string;
@@ -104,7 +105,7 @@ export const superAdminService = {
     const res = await api.get('/superadmin/shops');
     return res.data?.shops || res.data;
   },
-  createShop: async (data: { name: string; slug: string; description?: string; theme?: string }) => {
+  createShop: async (data: { name: string; slug: string; description?: string; theme?: string; category?: string }) => {
     const res = await api.post('/superadmin/shops', data);
     return res.data?.shop || res.data;
   },

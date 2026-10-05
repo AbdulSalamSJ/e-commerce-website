@@ -13,6 +13,7 @@ export const shops = pgTable('shops', {
   logoUrl: text('logo_url'),
   bannerUrl: text('banner_url'),
   theme: text('theme').default('cyber-neon').notNull(),
+  category: text('category').default('General').notNull(),
   status: text('status').default('active').notNull(), // 'active', 'suspended', 'pending'
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

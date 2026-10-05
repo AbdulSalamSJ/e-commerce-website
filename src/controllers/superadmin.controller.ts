@@ -44,7 +44,7 @@ export async function getOverview(_req: Request, res: Response): Promise<void> {
  */
 export async function createShop(req: Request, res: Response): Promise<void> {
   try {
-    const { name, slug, description, logoUrl, bannerUrl, theme } = req.body;
+    const { name, slug, description, logoUrl, bannerUrl, theme, category } = req.body;
 
     if (!name || !slug) {
       res.status(400).json({ error: 'Bad Request', message: 'Shop name and slug are required.' });
@@ -63,6 +63,7 @@ export async function createShop(req: Request, res: Response): Promise<void> {
     }
 
     const selectedTheme: ShopThemeId = isValidTheme(theme) ? theme : 'cyber-neon';
+    const shopCategory = category && String(category).trim() ? String(category).trim() : 'General';
 
     const [newShop] = await db
       .insert(shops)
@@ -73,6 +74,7 @@ export async function createShop(req: Request, res: Response): Promise<void> {
         logoUrl: logoUrl || null,
         bannerUrl: bannerUrl || null,
         theme: selectedTheme,
+        category: shopCategory,
         status: 'active',
       })
       .returning();
@@ -129,7 +131,7 @@ export async function listShops(_req: Request, res: Response): Promise<void> {
 export async function updateShop(req: Request, res: Response): Promise<void> {
   try {
     const id = String(req.params.id);
-    const { name, description, logoUrl, bannerUrl, theme, status } = req.body;
+    const { name, description, logoUrl, bannerUrl, theme, category, status } = req.body;
 
     const existing = await db.query.shops.findFirst({
       where: (s, { eq }) => eq(s.id, id),
@@ -148,6 +150,7 @@ export async function updateShop(req: Request, res: Response): Promise<void> {
         logoUrl: logoUrl !== undefined ? logoUrl : existing.logoUrl,
         bannerUrl: bannerUrl !== undefined ? bannerUrl : existing.bannerUrl,
         theme: theme !== undefined && isValidTheme(theme) ? theme : existing.theme,
+        category: category !== undefined ? (String(category).trim() || 'General') : existing.category,
         status: status !== undefined ? status : existing.status,
         updatedAt: new Date(),
       })

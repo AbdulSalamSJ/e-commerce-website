@@ -10,11 +10,25 @@ import {
   Store,
   Palette,
   ExternalLink,
-  Edit3
+  Edit3,
+  Tag
 } from 'lucide-react';
 import { superAdminService, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { THEME_LIST, getThemeConfig, ShopThemeId } from '../types/theme';
+
+export const PRESET_CATEGORIES = [
+  'Electronics & Tech',
+  'Fashion & Apparel',
+  'Luxury & Jewelry',
+  'Gaming & VR',
+  'Home & Living',
+  'Health & Beauty',
+  'Sports & Outdoors',
+  'Art & Collectibles',
+  'Food & Gourmet',
+  'Books & Media',
+];
 
 interface AdminUser {
   id: string;
@@ -46,6 +60,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [shopName, setShopName] = useState('');
   const [shopSlug, setShopSlug] = useState('');
   const [shopDescription, setShopDescription] = useState('');
+  const [shopCategory, setShopCategory] = useState('Electronics & Tech');
   const [shopTheme, setShopTheme] = useState<ShopThemeId>('cyber-neon');
   const [submittingShop, setSubmittingShop] = useState(false);
 
@@ -54,6 +69,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [editShopName, setEditShopName] = useState('');
   const [editShopSlug, setEditShopSlug] = useState('');
   const [editShopDescription, setEditShopDescription] = useState('');
+  const [editShopCategory, setEditShopCategory] = useState('Electronics & Tech');
   const [editShopTheme, setEditShopTheme] = useState<ShopThemeId>('cyber-neon');
   const [editShopStatus, setEditShopStatus] = useState<string>('active');
   const [submittingEditShop, setSubmittingEditShop] = useState(false);
@@ -97,17 +113,20 @@ export const SuperAdminDashboard: React.FC = () => {
 
     setSubmittingShop(true);
     try {
+      const trimmedCategory = shopCategory.trim() || 'General';
       await superAdminService.createShop({
         name: shopName,
         slug: shopSlug.toLowerCase().trim().replace(/\s+/g, '-'),
         description: shopDescription,
+        category: trimmedCategory,
         theme: shopTheme,
       });
-      success(`Shop "${shopName}" onboarded with theme "${getThemeConfig(shopTheme).badgeText}"!`);
+      success(`Shop "${shopName}" (${trimmedCategory}) onboarded with theme "${getThemeConfig(shopTheme).badgeText}"!`);
       setIsShopModalOpen(false);
       setShopName('');
       setShopSlug('');
       setShopDescription('');
+      setShopCategory('Electronics & Tech');
       setShopTheme('cyber-neon');
       fetchData();
     } catch (err: any) {
@@ -132,6 +151,7 @@ export const SuperAdminDashboard: React.FC = () => {
     setEditShopName(s.name);
     setEditShopSlug(s.slug);
     setEditShopDescription(s.description || '');
+    setEditShopCategory(s.category || 'General');
     setEditShopTheme((s.theme || 'cyber-neon') as ShopThemeId);
     setEditShopStatus(s.status || 'active');
     setIsEditShopModalOpen(true);
@@ -146,13 +166,15 @@ export const SuperAdminDashboard: React.FC = () => {
 
     setSubmittingEditShop(true);
     try {
+      const trimmedCategory = editShopCategory.trim() || 'General';
       await superAdminService.updateShop(editingShopId, {
         name: editShopName.trim(),
         description: editShopDescription.trim() || null,
+        category: trimmedCategory,
         theme: editShopTheme,
         status: editShopStatus,
       });
-      success(`Updated "${editShopName}" information and theme successfully!`);
+      success(`Updated "${editShopName}" information and category successfully!`);
       setIsEditShopModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -370,6 +392,14 @@ export const SuperAdminDashboard: React.FC = () => {
                           <Palette className="w-2.5 h-2.5" />
                           {themeConfig.badgeText}
                         </button>
+                        <span 
+                          onClick={() => openEditShopModal(s)}
+                          className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium flex items-center gap-1 cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                          title="Store Category (Click to edit)"
+                        >
+                          <Tag className="w-2.5 h-2.5" />
+                          {s.category || 'General'}
+                        </span>
                         {s.status === 'suspended' && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
                             Suspended
@@ -551,12 +581,50 @@ export const SuperAdminDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* 4. Fourth Field: Store Theme & Dropdown Selection Box */}
+              {/* 4. Fourth Field: Store Category */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                    <Tag className="w-3.5 h-3.5 text-purple-400" />
+                    4. Store Category <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="text-[11px] text-purple-300 font-mono">Select preset or type custom</span>
+                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Electronics & Tech, Fashion & Apparel..."
+                  value={shopCategory}
+                  onChange={(e) => setShopCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 mb-2 transition-colors"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_CATEGORIES.map((cat) => {
+                    const isSelected = shopCategory.toLowerCase() === cat.toLowerCase();
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setShopCategory(cat)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-400/40 font-semibold'
+                            : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 5. Fifth Field: Store Theme & Dropdown Selection Box */}
               <div>
                 <label htmlFor="store-theme-select" className="flex items-center justify-between text-xs font-medium text-slate-300 mb-1.5">
                   <span className="flex items-center gap-1.5 font-semibold text-white">
                     <Palette className="w-3.5 h-3.5 text-purple-400" />
-                    4. Store Theme
+                    5. Store Theme
                   </span>
                   <span className="text-[11px] text-purple-300 font-mono">Select theme from dropdown</span>
                 </label>
@@ -694,12 +762,50 @@ export const SuperAdminDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* 4. Fourth Field: Store Theme Dropdown Box */}
+              {/* 4. Store Category */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                    <Tag className="w-3.5 h-3.5 text-purple-400" />
+                    4. Store Category <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="text-[11px] text-purple-300 font-mono">Select preset or type custom</span>
+                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Electronics & Tech, Fashion & Apparel..."
+                  value={editShopCategory}
+                  onChange={(e) => setEditShopCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 mb-2 transition-colors"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_CATEGORIES.map((cat) => {
+                    const isSelected = editShopCategory.toLowerCase() === cat.toLowerCase();
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setEditShopCategory(cat)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-400/40 font-semibold'
+                            : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 5. Fifth Field: Store Theme Dropdown Box */}
               <div>
                 <label htmlFor="edit-store-theme-select" className="flex items-center justify-between text-xs font-medium text-slate-300 mb-1.5">
                   <span className="flex items-center gap-1.5 font-semibold text-white">
                     <Palette className="w-3.5 h-3.5 text-purple-400" />
-                    4. Store Theme
+                    5. Store Theme
                   </span>
                   <span className="text-[11px] text-purple-300 font-mono">Select theme from dropdown</span>
                 </label>

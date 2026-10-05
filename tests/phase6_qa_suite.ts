@@ -175,8 +175,10 @@ test('E2E / Flow: Multi-tier lifecycle simulation (SuperAdmin -> Admin -> Custom
     name: 'Neon Horizon Tech',
     slug: 'neon-horizon',
     description: 'Cyberpunk gear and next-gen audio devices',
+    category: 'Electronics & Tech',
     theme: 'cyber-neon' as const,
   };
+  assert.equal(createdShop.category, 'Electronics & Tech');
   const rawAdminPassword = 'AdminSecurePass!99';
   const hashedAdminPassword = await bcrypt.hash(rawAdminPassword, BCRYPT_SALT);
 

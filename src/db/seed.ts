@@ -58,13 +58,14 @@ async function seed() {
         slug: 'cyberhub',
         description: 'Next-generation tech gadgets, performance hardware, and premium gaming gear.',
         theme: 'cyber-neon',
+        category: 'Electronics & Tech',
         status: 'active',
       })
       .returning();
     shop = newShop;
     console.log(`Created Shop: ${shop.name} (${shop.id})`);
   } else {
-    await db.update(shops).set({ theme: 'cyber-neon' }).where(eq(shops.id, shop.id));
+    await db.update(shops).set({ theme: 'cyber-neon', category: 'Electronics & Tech' }).where(eq(shops.id, shop.id));
     console.log(`Found existing Shop: ${shop.name} (${shop.id}) with theme cyber-neon`);
   }
 
@@ -81,13 +82,14 @@ async function seed() {
         slug: 'maison-dor',
         description: 'Handcrafted 18k gold timepieces, ethical diamond jewelry, and bespoke artisanal treasures.',
         theme: 'luxury-gold',
+        category: 'Luxury & Jewelry',
         status: 'active',
       })
       .returning();
     luxeShop = newShop;
     console.log(`Created Shop: ${luxeShop.name} (${luxeShop.id})`);
   } else {
-    await db.update(shops).set({ theme: 'luxury-gold' }).where(eq(shops.id, luxeShop.id));
+    await db.update(shops).set({ theme: 'luxury-gold', category: 'Luxury & Jewelry' }).where(eq(shops.id, luxeShop.id));
     console.log(`Found existing Shop: ${luxeShop.name} with theme luxury-gold`);
   }
 
@@ -104,13 +106,14 @@ async function seed() {
         slug: 'solstice-creative',
         description: 'Vibrant neon street aesthetics, contemporary designer silhouettes, and dynamic graphic apparel.',
         theme: 'sunset-flare',
+        category: 'Fashion & Apparel',
         status: 'active',
       })
       .returning();
     sunsetShop = newShop;
     console.log(`Created Shop: ${sunsetShop.name} (${sunsetShop.id})`);
   } else {
-    await db.update(shops).set({ theme: 'sunset-flare' }).where(eq(shops.id, sunsetShop.id));
+    await db.update(shops).set({ theme: 'sunset-flare', category: 'Fashion & Apparel' }).where(eq(shops.id, sunsetShop.id));
     console.log(`Found existing Shop: ${sunsetShop.name} with theme sunset-flare`);
   }
 

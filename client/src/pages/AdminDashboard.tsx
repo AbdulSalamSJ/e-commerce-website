@@ -8,7 +8,8 @@ import {
   Edit3, 
   Layers,
   Palette,
-  ExternalLink
+  ExternalLink,
+  Tag
 } from 'lucide-react';
 import { adminService, Product, Order, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
@@ -72,7 +73,7 @@ export const AdminDashboard: React.FC = () => {
     setProdDescription('');
     setProdPrice('');
     setProdStock('10');
-    setProdCategory('Electronics');
+    setProdCategory(shop?.category || 'Electronics');
     setProdImageUrl('');
     setIsProductModalOpen(true);
   };
@@ -179,9 +180,17 @@ export const AdminDashboard: React.FC = () => {
             <Layers className="w-4 h-4" />
             Merchant Control Center
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            {shop?.name || 'Your Store'}
-          </h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+              {shop?.name || 'Your Store'}
+            </h1>
+            {shop?.category && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 flex items-center gap-1.5 shadow-sm">
+                <Tag className="w-3 h-3 text-emerald-400" />
+                {shop.category}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-400 mt-1">
             Manage your catalog, fulfill customer orders, and configure store branding.
           </p>
@@ -433,6 +442,25 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               );
             })()}
+
+            {/* Assigned Store Category Display */}
+            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-emerald-400" />
+                  Assigned Store Category
+                </span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+                  {shop?.category || 'General'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Determines the primary market sector and classification for your shop across the platform marketplace.
+              </p>
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-mono">Managed by Super-Administrator</span>
+              </div>
+            </div>
 
             <button
               type="submit"

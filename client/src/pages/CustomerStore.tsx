@@ -100,16 +100,25 @@ export const CustomerStore: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           {activeShop ? (
             <>
-              <div 
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6 shadow-sm border"
-                style={{
-                  backgroundColor: `${themeConfig.primaryColor}15`,
-                  borderColor: `${themeConfig.primaryColor}40`,
-                  color: themeConfig.primaryColor,
-                }}
-              >
-                <Palette className="w-3.5 h-3.5" />
-                <span>{themeConfig.badgeText} Theme • {activeShop.name}</span>
+              <div className="flex items-center justify-center gap-2 flex-wrap mb-6">
+                <div 
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-sm border"
+                  style={{
+                    backgroundColor: `${themeConfig.primaryColor}15`,
+                    borderColor: `${themeConfig.primaryColor}40`,
+                    color: themeConfig.primaryColor,
+                  }}
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  <span>{themeConfig.badgeText} Theme • {activeShop.name}</span>
+                </div>
+
+                {activeShop.category && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <Tag className="w-3 h-3" />
+                    <span>{activeShop.category}</span>
+                  </div>
+                )}
               </div>
 
               <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
