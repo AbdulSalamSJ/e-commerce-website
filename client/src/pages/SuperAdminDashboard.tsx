@@ -252,15 +252,42 @@ export const SuperAdminDashboard: React.FC = () => {
 
     setSubmittingEditShop(true);
     try {
-      const trimmedCategory = editShopCategory.trim() || 'General';
+      let finalCategory = editShopCategory.trim() || 'General';
+      if (isEditAddingNewCat && editNewCategoryInput.trim()) {
+        finalCategory = editNewCategoryInput.trim();
+        setAvailableCategories((prev) => {
+          if (!prev.some((c) => c.toLowerCase() === finalCategory.toLowerCase())) {
+            return [finalCategory, ...prev];
+          }
+          return prev;
+        });
+      }
+
       await superAdminService.updateShop(editingShopId, {
         name: editShopName.trim(),
         description: editShopDescription.trim() || null,
-        category: trimmedCategory,
+        category: finalCategory,
         theme: editShopTheme,
         status: editShopStatus,
       });
-      success(`Updated "${editShopName}" information and category successfully!`);
+
+      // Immediately update local shops state so all changes reflect without delay
+      setShops((prev) =>
+        prev.map((s) =>
+          s.id === editingShopId
+            ? {
+                ...s,
+                name: editShopName.trim(),
+                description: editShopDescription.trim() || null,
+                category: finalCategory,
+                theme: editShopTheme,
+                status: editShopStatus,
+              }
+            : s
+        )
+      );
+
+      success(`Changes saved and applied to "${editShopName.trim()}"!`);
       setIsEditShopModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -1141,10 +1168,10 @@ export const SuperAdminDashboard: React.FC = () => {
                 })()}
               </div>
 
-              {/* 5. Store Status */}
+              {/* 6. Store Status */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  5. Store Status
+                  6. Store Status
                 </label>
                 <select
                   value={editShopStatus}
@@ -1167,9 +1194,9 @@ export const SuperAdminDashboard: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submittingEditShop}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-all"
                 >
-                  {submittingEditShop ? 'Saving Changes...' : 'Save Changes & Apply Theme'}
+                  {submittingEditShop ? 'Saving & Applying...' : 'Save & Apply'}
                 </button>
               </div>
             </form>
