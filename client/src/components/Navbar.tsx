@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { customerService, Shop, Product } from '../services/api';
+import { customerService, Shop } from '../services/api';
 
 interface CategoryItem {
   id: string;
@@ -39,31 +39,20 @@ const getCategoryIcon = (name: string): React.ComponentType<{ className?: string
   const lower = name.toLowerCase();
   if (lower === 'all' || lower.includes('all product')) return Sparkles;
   if (lower.includes('snack') || lower.includes('food') || lower.includes('gourmet') || lower.includes('fruit') || lower.includes('grocery') || lower.includes('drink')) return Coffee;
-  if (lower.includes('audio') || lower.includes('sound') || lower.includes('headphone')) return Headphones;
+  if (lower.includes('audio') || lower.includes('sound') || lower.includes('headphone') || lower.includes('head set') || lower.includes('headset')) return Headphones;
   if (lower.includes('game') || lower.includes('gaming') || lower.includes('vr')) return Gamepad2;
   if (lower.includes('display') || lower.includes('screen') || lower.includes('monitor') || lower.includes('tv')) return Monitor;
   if (lower.includes('watch') || lower.includes('clock') || lower.includes('time')) return Watch;
   if (lower.includes('jewel') || lower.includes('gem') || lower.includes('luxury') || lower.includes('gold') || lower.includes('diamond')) return Gem;
   if (lower.includes('apparel') || lower.includes('fashion') || lower.includes('cloth') || lower.includes('shirt') || lower.includes('streetwear')) return Shirt;
-  if (lower.includes('tech') || lower.includes('electron') || lower.includes('gadget') || lower.includes('cpu') || lower.includes('hardware')) return Cpu;
+  if (lower.includes('tech') || lower.includes('electron') || lower.includes('gadget') || lower.includes('cpu') || lower.includes('hardware') || lower.includes('mobile') || lower.includes('phone')) return Cpu;
   if (lower.includes('sport') || lower.includes('outdoor') || lower.includes('fitness')) return Activity;
-  if (lower.includes('beauty') || lower.includes('health') || lower.includes('cosmetic') || lower.includes('wellness')) return Heart;
+  if (lower.includes('beauty') || lower.includes('health') || lower.includes('cosmetic') || lower.includes('wellness') || lower.includes('parfum') || lower.includes('fragrance') || lower.includes('perfume')) return Heart;
   if (lower.includes('book') || lower.includes('media') || lower.includes('library')) return BookOpen;
   if (lower.includes('home') || lower.includes('living') || lower.includes('decor') || lower.includes('furniture')) return Home;
   if (lower.includes('art') || lower.includes('collectible')) return Palette;
   return Tag;
 };
-
-const DEFAULT_CATEGORIES: CategoryItem[] = [
-  { id: 'all', name: 'All Products', icon: Sparkles },
-  { id: 'Audio', name: 'Audio', icon: Headphones },
-  { id: 'Gaming', name: 'Gaming', icon: Gamepad2 },
-  { id: 'Displays', name: 'Displays', icon: Monitor },
-  { id: 'Watches', name: 'Watches', icon: Watch },
-  { id: 'Jewelry', name: 'Jewelry', icon: Gem },
-  { id: 'Apparel', name: 'Apparel', icon: Shirt },
-  { id: 'Electronics', name: 'Electronics', icon: Cpu },
-];
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout, isSuperAdmin, isAdmin } = useAuth();
@@ -73,18 +62,12 @@ export const Navbar: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const [shops, setShops] = useState<Shop[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
 
   const fetchCategoriesData = async () => {
     try {
-      const [shopsData, prodsData] = await Promise.all([
-        customerService.getShops(),
-        customerService.getProducts(),
-      ]);
+      const shopsData = await customerService.getShops();
       const loadedShops: Shop[] = Array.isArray(shopsData) ? shopsData : (shopsData?.shops || []);
-      const loadedProds: Product[] = Array.isArray(prodsData) ? prodsData : (prodsData?.products || []);
       setShops(loadedShops);
-      setProducts(loadedProds);
     } catch (err) {
       console.error('Error fetching categories data for Navbar:', err);
     }
@@ -100,30 +83,35 @@ export const Navbar: React.FC = () => {
     : null;
   const currentShop = storeSlug ? shops.find((s) => s.slug === storeSlug) : null;
 
-  // Build categories to display based on store context
+  // Build categories to display: Show ONLY the Merchant Store Categories available in merchant stores
   const displayedCategories: CategoryItem[] = React.useMemo(() => {
+    // 1. Gather all unique store categories from active merchant stores
+    const merchantStoreCats = Array.from(
+      new Set(
+        shops
+          .filter((s) => s.status !== 'inactive' && s.status !== 'archived')
+          .map((s) => s.category?.trim())
+          .filter((c): c is string => Boolean(c))
+      )
+    );
+
+    // If viewing a specific merchant store (/store/:slug)
     if (currentShop) {
-      // RESPECTIVE STORE CATEGORIES (Updated by Super Admin)
       const storeCats: CategoryItem[] = [
         { id: 'all', name: 'All Products', icon: Sparkles },
       ];
 
-      // 1. Add store category updated by Super Admin (e.g. Snacks)
+      // Current merchant store's category first
       if (currentShop.category && currentShop.category.trim()) {
         storeCats.push({
-          id: currentShop.category,
-          name: currentShop.category,
-          icon: getCategoryIcon(currentShop.category),
+          id: currentShop.category.trim(),
+          name: currentShop.category.trim(),
+          icon: getCategoryIcon(currentShop.category.trim()),
         });
       }
 
-      // 2. Add product categories belonging to this specific store
-      const storeProds = products.filter((p) => p.shopId === currentShop.id);
-      const prodCats = Array.from(
-        new Set(storeProds.map((p) => p.category).filter(Boolean))
-      ) as string[];
-
-      for (const cat of prodCats) {
+      // Other available merchant store categories
+      for (const cat of merchantStoreCats) {
         if (!storeCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
           storeCats.push({
             id: cat,
@@ -136,21 +124,12 @@ export const Navbar: React.FC = () => {
       return storeCats;
     }
 
-    // ALL STORES / MARKETPLACE CATEGORIES (Super Admin + Catalog)
+    // ALL STORES / MARKETPLACE: Show only Merchant Store Categories (e.g. Electronics & Tech, Luxury & Jewelry, Fashion & Apparel, Head set, Snacks)
     const allCats: CategoryItem[] = [
       { id: 'all', name: 'All Products', icon: Sparkles },
     ];
 
-    // 1. All Store categories updated by Super Admin across active shops
-    const superAdminStoreCats = Array.from(
-      new Set(
-        shops
-          .map((s) => s.category)
-          .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
-      )
-    );
-
-    for (const cat of superAdminStoreCats) {
+    for (const cat of merchantStoreCats) {
       if (!allCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
         allCats.push({
           id: cat,
@@ -158,33 +137,10 @@ export const Navbar: React.FC = () => {
           icon: getCategoryIcon(cat),
         });
       }
-    }
-
-    // 2. All product categories in catalog
-    const prodCats = Array.from(
-      new Set(
-        products
-          .map((p) => p.category)
-          .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
-      )
-    );
-
-    for (const cat of prodCats) {
-      if (!allCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
-        allCats.push({
-          id: cat,
-          name: cat,
-          icon: getCategoryIcon(cat),
-        });
-      }
-    }
-
-    if (allCats.length <= 1) {
-      return DEFAULT_CATEGORIES;
     }
 
     return allCats;
-  }, [currentShop, shops, products]);
+  }, [currentShop, shops]);
 
   const handleLogout = () => {
     logout();
@@ -205,7 +161,17 @@ export const Navbar: React.FC = () => {
       newParams.set('category', categoryId);
     }
     const searchStr = newParams.toString() ? `?${newParams.toString()}` : '';
-    navigate(`${targetPath}${searchStr}`);
+
+    // If in a store and clicking a category belonging to a different merchant store, navigate to '/' marketplace
+    if (
+      currentShop &&
+      categoryId.toLowerCase() !== 'all' &&
+      currentShop.category?.toLowerCase() !== categoryId.toLowerCase()
+    ) {
+      navigate(`/${searchStr}`);
+    } else {
+      navigate(`${targetPath}${searchStr}`);
+    }
   };
 
   return (
