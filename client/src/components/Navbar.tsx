@@ -169,10 +169,11 @@ export const Navbar: React.FC = () => {
     const searchStr = newParams.toString() ? `?${newParams.toString()}` : '';
 
     // If in a store and clicking a category belonging to a different merchant store, navigate to '/' marketplace
+    const shopCats = currentShop ? parseCategories(currentShop.category).map((c) => c.toLowerCase()) : [];
     if (
       currentShop &&
       categoryId.toLowerCase() !== 'all' &&
-      currentShop.category?.toLowerCase() !== categoryId.toLowerCase()
+      !shopCats.includes(categoryId.toLowerCase())
     ) {
       navigate(`/${searchStr}`);
     } else {

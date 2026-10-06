@@ -119,15 +119,33 @@ export const CustomerStore: React.FC = () => {
 
                 {activeShop.category && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {parseCategories(activeShop.category).map((cat) => (
-                      <div 
-                        key={cat}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                      >
-                        <Tag className="w-3 h-3" />
-                        <span>{cat}</span>
-                      </div>
-                    ))}
+                    {parseCategories(activeShop.category).map((cat) => {
+                      const isCatSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            const newParams = new URLSearchParams(searchParams);
+                            if (isCatSelected) {
+                              newParams.delete('category');
+                            } else {
+                              newParams.set('category', cat);
+                            }
+                            setSearchParams(newParams);
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${
+                            isCatSelected
+                              ? 'bg-gradient-to-r from-emerald-500/25 to-teal-500/25 text-emerald-300 border border-emerald-500/50 shadow-md shadow-emerald-500/20'
+                              : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/40'
+                          }`}
+                          title={`Click to filter by ${cat}`}
+                        >
+                          <Tag className="w-3 h-3" />
+                          <span>{cat}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

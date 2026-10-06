@@ -99,10 +99,12 @@ export const CategoryCheckboxDropdown: React.FC<CategoryCheckboxDropdownProps> =
     if (e) e.preventDefault();
     const trimmed = newCatInput.trim();
     if (!trimmed) return;
-    onAddNewCategory(trimmed);
-    if (!selectedCategories.includes(trimmed)) {
-      onChange([...selectedCategories, trimmed]);
-    }
+    const parts = trimmed.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+
+    parts.forEach((p) => onAddNewCategory(p));
+    const newSelected = Array.from(new Set([...selectedCategories, ...parts]));
+    onChange(newSelected);
     setNewCatInput('');
   };
 
