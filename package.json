@@ -6,7 +6,7 @@
     "scripts": {
         "start": "node dist/src/server.js",
         "db:seed": "tsx src/db/seed.ts",
-        "build": "npm run build --prefix client && tsc",
+        "build": "tsc",
         "db:push": "drizzle-kit push",
         "db:migrate": "drizzle-kit migrate",
         "db:studio": "drizzle-kit studio",
