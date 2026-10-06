@@ -101,24 +101,13 @@ export const Navbar: React.FC = () => {
         { id: 'all', name: 'All Products', icon: Sparkles },
       ];
 
-      // Current merchant store's category first
+      // Take from store category in merchant store
       if (currentShop.category && currentShop.category.trim()) {
         storeCats.push({
           id: currentShop.category.trim(),
           name: currentShop.category.trim(),
           icon: getCategoryIcon(currentShop.category.trim()),
         });
-      }
-
-      // Other available merchant store categories
-      for (const cat of merchantStoreCats) {
-        if (!storeCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
-          storeCats.push({
-            id: cat,
-            name: cat,
-            icon: getCategoryIcon(cat),
-          });
-        }
       }
 
       return storeCats;
