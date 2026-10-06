@@ -92,6 +92,12 @@ export const Navbar: React.FC = () => {
     : null;
   const currentShop = storeSlug ? shops.find((s) => s.slug === storeSlug) : null;
 
+  const isSuperAdminPage = location.pathname.startsWith('/superadmin');
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isOrdersPage = location.pathname.startsWith('/orders');
+  const showSecondHeader = !isSuperAdminPage && !isAdminPage && !isAuthPage && !isOrdersPage;
+
   // Build categories to display: Show all store categories checked for this merchant store
   const displayedCategories: CategoryItem[] = React.useMemo(() => {
     // If viewing a specific merchant store (/store/:slug)
@@ -316,8 +322,9 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* SECOND HEADER: Category Navigation Bar */}
-      <div className="border-t border-white/10 bg-slate-950/80 backdrop-blur-md">
+      {/* SECOND HEADER: Category Navigation Bar (Hidden on Master Admin /superadmin, Merchant Admin /admin, Auth, and Orders pages) */}
+      {showSecondHeader && (
+        <div className="border-t border-white/10 bg-slate-950/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between gap-4">
           {/* Scrollable category list */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 flex-1">
@@ -367,6 +374,7 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
     </header>
   );
 };
