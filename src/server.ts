@@ -81,8 +81,8 @@ const clientDistPath = [
 
 if (clientDistPath) {
   app.use(express.static(clientDistPath));
-  app.get('*', (req: Request, res: Response, next) => {
-    if (req.path.startsWith('/api') || req.path === '/health') {
+  app.use((req: Request, res: Response, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api') || req.path === '/health') {
       return next();
     }
     const indexPath = path.join(clientDistPath, 'index.html');
