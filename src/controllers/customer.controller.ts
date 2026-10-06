@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { eq, and, ilike } from 'drizzle-orm';
+import { eq, and, ilike, or, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { shops, products, orders } from '../db/schema.js';
 
@@ -74,7 +74,23 @@ export async function listPublicProducts(req: Request, res: Response): Promise<v
       conditions.push(eq(products.shopId, String(shopId)));
     }
     if (category) {
-      conditions.push(eq(products.category, String(category)));
+      const catStr = String(category).trim();
+      const matchingShops = await db
+        .select({ id: shops.id })
+        .from(shops)
+        .where(ilike(shops.category, `%${catStr}%`));
+      const matchingShopIds = matchingShops.map((s) => s.id);
+
+      if (matchingShopIds.length > 0) {
+        conditions.push(
+          or(
+            ilike(products.category, `%${catStr}%`),
+            inArray(products.shopId, matchingShopIds)
+          )
+        );
+      } else {
+        conditions.push(ilike(products.category, `%${catStr}%`));
+      }
     }
     if (search) {
       conditions.push(ilike(products.name, `%${String(search).trim()}%`));

@@ -11,6 +11,7 @@ import { customerService, Product, Shop } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { getThemeConfig, ShopThemeId } from '../types/theme';
+import { parseCategories } from '../components/Navbar';
 
 export const CustomerStore: React.FC = () => {
   const { slug } = useParams<{ slug?: string }>();
@@ -62,10 +63,11 @@ export const CustomerStore: React.FC = () => {
   const filteredProducts = products.filter((p) => {
     const matchesShop = selectedShopId === 'all' || p.shopId === selectedShopId;
     const prodShop = shops.find((s) => s.id === p.shopId);
+    const shopCats = parseCategories(prodShop?.category).map((c) => c.toLowerCase());
     const matchesCategory =
       selectedCategory.toLowerCase() === 'all' ||
       (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase()) ||
-      (prodShop?.category && prodShop.category.toLowerCase() === selectedCategory.toLowerCase());
+      shopCats.includes(selectedCategory.toLowerCase());
     const matchesSearch =
       !searchQuery.trim() ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,9 +118,16 @@ export const CustomerStore: React.FC = () => {
                 </div>
 
                 {activeShop.category && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                    <Tag className="w-3 h-3" />
-                    <span>{activeShop.category}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {parseCategories(activeShop.category).map((cat) => (
+                      <div 
+                        key={cat}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                      >
+                        <Tag className="w-3 h-3" />
+                        <span>{cat}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

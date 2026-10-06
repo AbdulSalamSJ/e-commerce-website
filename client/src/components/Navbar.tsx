@@ -54,6 +54,15 @@ const getCategoryIcon = (name: string): React.ComponentType<{ className?: string
   return Tag;
 };
 
+export const parseCategories = (catStr?: string | null): string[] => {
+  if (!catStr) return [];
+  try {
+    const parsed = JSON.parse(catStr);
+    if (Array.isArray(parsed)) return parsed.map((c) => String(c).trim()).filter(Boolean);
+  } catch {}
+  return catStr.split(',').map((c) => c.trim()).filter(Boolean);
+};
+
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout, isSuperAdmin, isAdmin } = useAuth();
   const { totalItems, setIsCartOpen } = useCart();
@@ -83,40 +92,42 @@ export const Navbar: React.FC = () => {
     : null;
   const currentShop = storeSlug ? shops.find((s) => s.slug === storeSlug) : null;
 
-  // Build categories to display: Show ONLY the Merchant Store Categories available in merchant stores
+  // Build categories to display: Show all store categories checked for this merchant store
   const displayedCategories: CategoryItem[] = React.useMemo(() => {
-    // 1. Gather all unique store categories from active merchant stores
-    const merchantStoreCats = Array.from(
-      new Set(
-        shops
-          .filter((s) => s.status !== 'inactive' && s.status !== 'archived')
-          .map((s) => s.category?.trim())
-          .filter((c): c is string => Boolean(c))
-      )
-    );
-
     // If viewing a specific merchant store (/store/:slug)
     if (currentShop) {
       const storeCats: CategoryItem[] = [
         { id: 'all', name: 'All Products', icon: Sparkles },
       ];
 
-      // Take from store category in merchant store
-      if (currentShop.category && currentShop.category.trim()) {
-        storeCats.push({
-          id: currentShop.category.trim(),
-          name: currentShop.category.trim(),
-          icon: getCategoryIcon(currentShop.category.trim()),
-        });
+      // Take all store categories selected via checkbox for this merchant store
+      const currentShopCats = parseCategories(currentShop.category);
+      for (const cat of currentShopCats) {
+        if (!storeCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
+          storeCats.push({
+            id: cat,
+            name: cat,
+            icon: getCategoryIcon(cat),
+          });
+        }
       }
 
       return storeCats;
     }
 
-    // ALL STORES / MARKETPLACE: Show only Merchant Store Categories (e.g. Electronics & Tech, Luxury & Jewelry, Fashion & Apparel, Head set, Snacks)
+    // ALL STORES / MARKETPLACE: Show all store categories checked across active merchant stores
     const allCats: CategoryItem[] = [
       { id: 'all', name: 'All Products', icon: Sparkles },
     ];
+
+    const merchantStoreCats = Array.from(
+      new Set(
+        shops
+          .filter((s) => s.status !== 'inactive' && s.status !== 'archived')
+          .flatMap((s) => parseCategories(s.category))
+          .filter((c) => Boolean(c) && c.toLowerCase() !== 'general')
+      )
+    );
 
     for (const cat of merchantStoreCats) {
       if (!allCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {

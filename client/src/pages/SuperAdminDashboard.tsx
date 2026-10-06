@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, 
   Users, 
@@ -15,11 +15,15 @@ import {
   Check,
   Maximize2,
   Minimize2,
-  X
+  X,
+  ChevronDown,
+  ChevronUp,
+  Search
 } from 'lucide-react';
 import { superAdminService, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { THEME_LIST, getThemeConfig, ShopThemeId } from '../types/theme';
+import { parseCategories } from '../components/Navbar';
 
 export const PRESET_CATEGORIES = [
   'Electronics & Tech',
@@ -49,6 +53,223 @@ interface OverviewData {
   totalOrders: number;
 }
 
+interface CategoryCheckboxDropdownProps {
+  selectedCategories: string[];
+  onChange: (categories: string[]) => void;
+  availableCategories: string[];
+  onAddNewCategory: (newCategory: string) => void;
+  onRemoveCategory?: (category: string) => void;
+}
+
+export const CategoryCheckboxDropdown: React.FC<CategoryCheckboxDropdownProps> = ({
+  selectedCategories,
+  onChange,
+  availableCategories,
+  onAddNewCategory,
+  onRemoveCategory,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [newCatInput, setNewCatInput] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const toggleCategory = (cat: string) => {
+    if (selectedCategories.includes(cat)) {
+      onChange(selectedCategories.filter((c) => c !== cat));
+    } else {
+      onChange([...selectedCategories, cat]);
+    }
+  };
+
+  const handleAddNew = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newCatInput.trim();
+    if (!trimmed) return;
+    onAddNewCategory(trimmed);
+    if (!selectedCategories.includes(trimmed)) {
+      onChange([...selectedCategories, trimmed]);
+    }
+    setNewCatInput('');
+  };
+
+  const filteredCategories = availableCategories.filter((cat) =>
+    cat.toLowerCase().includes(search.toLowerCase().trim())
+  );
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Dropdown Toggle Trigger Button */}
+      <div
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full min-h-[46px] px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 hover:border-purple-500/50 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer shadow-inner flex items-center justify-between gap-2 transition-all"
+      >
+        <div className="flex items-center gap-1.5 flex-wrap flex-1 text-left">
+          {selectedCategories.length === 0 ? (
+            <span className="text-slate-400 text-xs italic">Click to select store categories...</span>
+          ) : (
+            selectedCategories.map((cat) => (
+              <span
+                key={cat}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCategory(cat);
+                }}
+              >
+                <span>{cat}</span>
+                <X className="w-3 h-3 hover:text-white cursor-pointer" />
+              </span>
+            ))
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0 text-slate-400">
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
+            {selectedCategories.length} selected
+          </span>
+          {isOpen ? <ChevronUp className="w-4 h-4 text-purple-400" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
+      </div>
+
+      {/* Dropdown Menu with Checkboxes */}
+      {isOpen && (
+        <div className="absolute z-50 left-0 right-0 mt-2 p-3 rounded-2xl bg-slate-950/95 backdrop-blur-xl border border-purple-500/30 shadow-2xl space-y-3">
+          {/* Header & Quick Actions */}
+          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <span className="text-xs font-semibold text-purple-300 flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5" />
+              Select Store Categories (Will appear in Second Header)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedCategories.length === availableCategories.length) {
+                    onChange([]);
+                  } else {
+                    onChange([...availableCategories]);
+                  }
+                }}
+                className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                {selectedCategories.length === availableCategories.length ? 'Clear All' : 'Select All'}
+              </button>
+            </div>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search available categories..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+            />
+          </div>
+
+          {/* Scrollable Checkbox List */}
+          <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+            {filteredCategories.length === 0 ? (
+              <div className="text-center py-4 text-xs text-slate-500">
+                No matching categories found
+              </div>
+            ) : (
+              filteredCategories.map((cat) => {
+                const isChecked = selectedCategories.includes(cat);
+                return (
+                  <div
+                    key={cat}
+                    onClick={() => toggleCategory(cat)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer select-none transition-all ${
+                      isChecked
+                        ? 'bg-purple-600/20 border border-purple-500/40 text-purple-200 font-semibold'
+                        : 'hover:bg-white/5 text-slate-300 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900 bg-slate-800 cursor-pointer accent-purple-500"
+                      />
+                      <span className="text-xs">{cat}</span>
+                    </div>
+
+                    {onRemoveCategory && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveCategory(cat);
+                        }}
+                        className="text-slate-500 hover:text-rose-400 p-1 transition-colors"
+                        title={`Remove "${cat}" from list`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Add New Category Section */}
+          <div className="pt-2 border-t border-white/10 flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="+ Add new category..."
+              value={newCatInput}
+              onChange={(e) => setNewCatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddNew();
+                }
+              }}
+              className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+            />
+            <button
+              type="button"
+              onClick={() => handleAddNew()}
+              disabled={!newCatInput.trim()}
+              className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Check className="w-3.5 h-3.5" />
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const SuperAdminDashboard: React.FC = () => {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -62,18 +283,14 @@ export const SuperAdminDashboard: React.FC = () => {
   const [isEditModalFullScreen, setIsEditModalFullScreen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
-  // Category Management & Insert
+  // Category Management
   const [availableCategories, setAvailableCategories] = useState<string[]>(PRESET_CATEGORIES);
-  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
-  const [newCategoryInput, setNewCategoryInput] = useState('');
-  const [isEditAddingNewCat, setIsEditAddingNewCat] = useState(false);
-  const [editNewCategoryInput, setEditNewCategoryInput] = useState('');
 
   // Shop Form (New)
   const [shopName, setShopName] = useState('');
   const [shopSlug, setShopSlug] = useState('');
   const [shopDescription, setShopDescription] = useState('');
-  const [shopCategory, setShopCategory] = useState('Electronics & Tech');
+  const [shopCategories, setShopCategories] = useState<string[]>(['Electronics & Tech']);
   const [shopTheme, setShopTheme] = useState<ShopThemeId>('cyber-neon');
   const [submittingShop, setSubmittingShop] = useState(false);
 
@@ -82,7 +299,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [editShopName, setEditShopName] = useState('');
   const [editShopSlug, setEditShopSlug] = useState('');
   const [editShopDescription, setEditShopDescription] = useState('');
-  const [editShopCategory, setEditShopCategory] = useState('Electronics & Tech');
+  const [editShopCategories, setEditShopCategories] = useState<string[]>([]);
   const [editShopTheme, setEditShopTheme] = useState<ShopThemeId>('cyber-neon');
   const [editShopStatus, setEditShopStatus] = useState<string>('active');
   const [submittingEditShop, setSubmittingEditShop] = useState(false);
@@ -110,7 +327,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
       // Merge dynamic categories from DB shops
       const dynamicCats = fetchedShops
-        .map((s: any) => s.category)
+        .flatMap((s: any) => parseCategories(s.category))
         .filter((c: any) => Boolean(c) && c !== 'General');
 
       setAvailableCategories((prev) => {
@@ -133,54 +350,6 @@ export const SuperAdminDashboard: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleInsertCategory = (isEdit: boolean = false) => {
-    const rawVal = isEdit ? editNewCategoryInput : newCategoryInput;
-    const trimmed = rawVal.trim();
-    if (!trimmed) {
-      error('Please enter a category name to add');
-      return;
-    }
-
-    // Insert into category list if not already present
-    setAvailableCategories((prev) => {
-      if (prev.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
-        return prev;
-      }
-      return [trimmed, ...prev];
-    });
-
-    if (isEdit) {
-      setEditShopCategory(trimmed);
-      setEditNewCategoryInput('');
-      setIsEditAddingNewCat(false);
-    } else {
-      setShopCategory(trimmed);
-      setNewCategoryInput('');
-      setIsAddingNewCat(false);
-    }
-
-    success(`Category "${trimmed}" set!`);
-  };
-
-  const handleRemoveCategory = (isEdit: boolean = false) => {
-    const targetCat = isEdit ? editShopCategory : shopCategory;
-    if (!targetCat) return;
-
-    const updated = availableCategories.filter(
-      (c) => c.toLowerCase() !== targetCat.toLowerCase()
-    );
-
-    setAvailableCategories(updated);
-
-    const fallback = updated.length > 0 ? updated[0] : 'General';
-    if (isEdit) {
-      setEditShopCategory(fallback);
-    } else {
-      setShopCategory(fallback);
-    }
-
-    success(`Category "${targetCat}" removed from list`);
-  };
 
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,22 +360,20 @@ export const SuperAdminDashboard: React.FC = () => {
 
     setSubmittingShop(true);
     try {
-      const trimmedCategory = shopCategory.trim() || 'General';
+      const finalCategory = shopCategories.length > 0 ? shopCategories.join(', ') : 'General';
       await superAdminService.createShop({
         name: shopName,
         slug: shopSlug.toLowerCase().trim().replace(/\s+/g, '-'),
         description: shopDescription,
-        category: trimmedCategory,
+        category: finalCategory,
         theme: shopTheme,
       });
-      success(`Shop "${shopName}" (${trimmedCategory}) onboarded with theme "${getThemeConfig(shopTheme).badgeText}"!`);
+      success(`Shop "${shopName}" (${finalCategory}) onboarded with theme "${getThemeConfig(shopTheme).badgeText}"!`);
       setIsShopModalOpen(false);
       setShopName('');
       setShopSlug('');
       setShopDescription('');
-      setShopCategory('Electronics & Tech');
-      setIsAddingNewCat(false);
-      setNewCategoryInput('');
+      setShopCategories(['Electronics & Tech']);
       setShopTheme('cyber-neon');
       fetchData();
     } catch (err: any) {
@@ -231,13 +398,17 @@ export const SuperAdminDashboard: React.FC = () => {
     setEditShopName(s.name);
     setEditShopSlug(s.slug);
     setEditShopDescription(s.description || '');
-    const currentCat = s.category || 'General';
-    setEditShopCategory(currentCat);
-    if (currentCat && !availableCategories.some((c) => c.toLowerCase() === currentCat.toLowerCase())) {
-      setAvailableCategories((prev) => [currentCat, ...prev]);
-    }
-    setIsEditAddingNewCat(false);
-    setEditNewCategoryInput('');
+    const parsedCats = parseCategories(s.category);
+    setEditShopCategories(parsedCats.length > 0 ? parsedCats : ['General']);
+    setAvailableCategories((prev) => {
+      const merged = [...prev];
+      for (const cat of parsedCats) {
+        if (!merged.some((c) => c.toLowerCase() === cat.toLowerCase())) {
+          merged.push(cat);
+        }
+      }
+      return merged;
+    });
     setEditShopTheme((s.theme || 'cyber-neon') as ShopThemeId);
     setEditShopStatus(s.status || 'active');
     setIsEditShopModalOpen(true);
@@ -252,16 +423,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
     setSubmittingEditShop(true);
     try {
-      let finalCategory = editShopCategory.trim() || 'General';
-      if (isEditAddingNewCat && editNewCategoryInput.trim()) {
-        finalCategory = editNewCategoryInput.trim();
-        setAvailableCategories((prev) => {
-          if (!prev.some((c) => c.toLowerCase() === finalCategory.toLowerCase())) {
-            return [finalCategory, ...prev];
-          }
-          return prev;
-        });
-      }
+      const finalCategory = editShopCategories.length > 0 ? editShopCategories.join(', ') : 'General';
 
       await superAdminService.updateShop(editingShopId, {
         name: editShopName.trim(),
@@ -505,14 +667,17 @@ export const SuperAdminDashboard: React.FC = () => {
                           <Palette className="w-2.5 h-2.5" />
                           {themeConfig.badgeText}
                         </button>
-                        <span 
-                          onClick={() => openEditShopModal(s)}
-                          className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium flex items-center gap-1 cursor-pointer hover:bg-emerald-500/20 transition-colors"
-                          title="Store Category (Click to edit)"
-                        >
-                          <Tag className="w-2.5 h-2.5" />
-                          {s.category || 'General'}
-                        </span>
+                        {parseCategories(s.category).map((cat) => (
+                          <span 
+                            key={cat}
+                            onClick={() => openEditShopModal(s)}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium flex items-center gap-1 cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                            title="Store Category (Click to edit)"
+                          >
+                            <Tag className="w-2.5 h-2.5" />
+                            {cat}
+                          </span>
+                        ))}
                         {s.status === 'suspended' && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
                             Suspended
@@ -739,95 +904,25 @@ export const SuperAdminDashboard: React.FC = () => {
               {/* 4. Fourth Field: Store Category */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  4. Store Category <span className="text-rose-400">*</span>
+                  4. Store Category (Select via Checkboxes) <span className="text-rose-400">*</span>
                 </label>
-
-                {!isAddingNewCat ? (
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={shopCategory}
-                      onChange={(e) => {
-                        if (e.target.value === '__add_new__') {
-                          setIsAddingNewCat(true);
-                          setNewCategoryInput('');
-                        } else {
-                          setShopCategory(e.target.value);
-                        }
-                      }}
-                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer shadow-inner"
-                    >
-                      {availableCategories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                      <option value="__add_new__">+ Enter New Category...</option>
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingNewCat(true);
-                        setNewCategoryInput('');
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
-                      title="Enter new category"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveCategory(false)}
-                      disabled={availableCategories.length === 0}
-                      className="px-3 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap disabled:opacity-40"
-                      title={`Remove "${shopCategory}" from options`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      autoFocus
-                      required
-                      placeholder="Enter new category..."
-                      value={newCategoryInput}
-                      onChange={(e) => {
-                        setNewCategoryInput(e.target.value);
-                        setShopCategory(e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleInsertCategory(false);
-                        } else if (e.key === 'Escape') {
-                          setIsAddingNewCat(false);
-                        }
-                      }}
-                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-purple-500 text-white text-sm focus:outline-none focus:border-purple-400 placeholder-slate-500 shadow-inner"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleInsertCategory(false)}
-                      disabled={!newCategoryInput.trim()}
-                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      Done
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingNewCat(false)}
-                      className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs transition-all cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
+                <p className="text-[11px] text-slate-400 mb-1.5">
+                  Click the dropdown list to check the categories that will appear in this shop's second header.
+                </p>
+                <CategoryCheckboxDropdown
+                  selectedCategories={shopCategories}
+                  onChange={setShopCategories}
+                  availableCategories={availableCategories}
+                  onAddNewCategory={(newCat) => {
+                    setAvailableCategories((prev) => 
+                      prev.some((c) => c.toLowerCase() === newCat.toLowerCase()) ? prev : [newCat, ...prev]
+                    );
+                  }}
+                  onRemoveCategory={(cat) => {
+                    setAvailableCategories((prev) => prev.filter((c) => c !== cat));
+                    setShopCategories((prev) => prev.filter((c) => c !== cat));
+                  }}
+                />
               </div>
 
               {/* 5. Fifth Field: Store Theme & Dropdown Selection Box */}
@@ -1011,95 +1106,25 @@ export const SuperAdminDashboard: React.FC = () => {
               {/* 4. Store Category */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  4. Store Category <span className="text-rose-400">*</span>
+                  4. Store Category (Select via Checkboxes) <span className="text-rose-400">*</span>
                 </label>
-
-                {!isEditAddingNewCat ? (
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={editShopCategory}
-                      onChange={(e) => {
-                        if (e.target.value === '__add_new__') {
-                          setIsEditAddingNewCat(true);
-                          setEditNewCategoryInput('');
-                        } else {
-                          setEditShopCategory(e.target.value);
-                        }
-                      }}
-                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500 cursor-pointer shadow-inner"
-                    >
-                      {availableCategories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                      <option value="__add_new__">+ Enter New Category...</option>
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditAddingNewCat(true);
-                        setEditNewCategoryInput('');
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
-                      title="Enter new category"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveCategory(true)}
-                      disabled={availableCategories.length === 0}
-                      className="px-3 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap disabled:opacity-40"
-                      title={`Remove "${editShopCategory}" from options`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      autoFocus
-                      required
-                      placeholder="Enter new category..."
-                      value={editNewCategoryInput}
-                      onChange={(e) => {
-                        setEditNewCategoryInput(e.target.value);
-                        setEditShopCategory(e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleInsertCategory(true);
-                        } else if (e.key === 'Escape') {
-                          setIsEditAddingNewCat(false);
-                        }
-                      }}
-                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-purple-500 text-white text-sm focus:outline-none focus:border-purple-400 placeholder-slate-500 shadow-inner"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleInsertCategory(true)}
-                      disabled={!editNewCategoryInput.trim()}
-                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1 shadow-md shadow-purple-600/25 transition-all cursor-pointer whitespace-nowrap"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      Done
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditAddingNewCat(false)}
-                      className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs transition-all cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
+                <p className="text-[11px] text-slate-400 mb-1.5">
+                  Click the dropdown list to check the categories that will appear in this shop's second header.
+                </p>
+                <CategoryCheckboxDropdown
+                  selectedCategories={editShopCategories}
+                  onChange={setEditShopCategories}
+                  availableCategories={availableCategories}
+                  onAddNewCategory={(newCat) => {
+                    setAvailableCategories((prev) => 
+                      prev.some((c) => c.toLowerCase() === newCat.toLowerCase()) ? prev : [newCat, ...prev]
+                    );
+                  }}
+                  onRemoveCategory={(cat) => {
+                    setAvailableCategories((prev) => prev.filter((c) => c !== cat));
+                    setEditShopCategories((prev) => prev.filter((c) => c !== cat));
+                  }}
+                />
               </div>
 
               {/* 5. Fifth Field: Store Theme Dropdown Box */}
