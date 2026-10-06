@@ -1,11 +1,17 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
 import superAdminRoutes from './routes/superadmin.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import customerRoutes from './routes/customer.routes.js';
 import { pool } from './db/client.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -66,7 +72,29 @@ app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', customerRoutes);
 
-// 404 Handler
+// Static Client Files & SPA Fallback (Resolves refresh on all routes like /admin, /superadmin, /store/*)
+const clientDistPath = [
+  path.resolve(process.cwd(), 'client/dist'),
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(__dirname, '../client/dist'),
+].find((p) => fs.existsSync(p));
+
+if (clientDistPath) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req: Request, res: Response, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health') {
+      return next();
+    }
+    const indexPath = path.join(clientDistPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      next();
+    }
+  });
+}
+
+// 404 Handler for Unhandled API Routes
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     error: 'Not Found',

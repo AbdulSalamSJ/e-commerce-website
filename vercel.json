@@ -4,18 +4,6 @@
     "app": {
       "root": ".",
       "framework": "express"
-    },
-    "client": {
-      "root": "client",
-      "framework": "vite",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "app",
-          "format": "url",
-          "env": "APP_URL"
-        }
-      ]
     }
   },
   "rewrites": [
@@ -32,26 +20,10 @@
       }
     },
     {
-      "source": "/index.html",
-      "destination": {
-        "service": "client"
-      }
-    },
-    {
-      "source": "/assets/(.*)",
-      "destination": {
-        "service": "client"
-      }
-    },
-    {
-      "source": "/(.*\\.[a-zA-Z0-9]+)",
-      "destination": {
-        "service": "client"
-      }
-    },
-    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": {
+        "service": "app"
+      }
     }
   ]
 }
