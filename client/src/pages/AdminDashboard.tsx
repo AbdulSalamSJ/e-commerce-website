@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Package, 
   ShoppingBag, 
@@ -14,8 +15,12 @@ import {
 import { adminService, Product, Order, Shop } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { getThemeConfig } from '../types/theme';
+import { parseCategories } from '../components/Navbar';
 
 export const AdminDashboard: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCategory = searchParams.get('category') || 'all';
+
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings'>('products');
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -67,13 +72,39 @@ export const AdminDashboard: React.FC = () => {
     loadData();
   }, []);
 
+  // When a category is clicked in the header, automatically switch to Products tab
+  useEffect(() => {
+    if (selectedCategory && selectedCategory.toLowerCase() !== 'all') {
+      setActiveTab('products');
+    }
+  }, [selectedCategory]);
+
+  const filteredProducts = products.filter((p) => {
+    if (selectedCategory.toLowerCase() === 'all') return true;
+    if (!p.category) return false;
+    const sel = selectedCategory.toLowerCase().trim();
+    const prodCat = p.category.toLowerCase().trim();
+    const selTokens = sel.split(',').map((c) => c.trim()).filter(Boolean);
+    const prodTokens = prodCat.split(',').map((c) => c.trim()).filter(Boolean);
+    return (
+      prodCat === sel ||
+      prodCat.includes(sel) ||
+      sel.includes(prodCat) ||
+      selTokens.some((t) => prodTokens.includes(t) || prodCat.includes(t)) ||
+      prodTokens.some((t) => selTokens.includes(t) || sel.includes(t))
+    );
+  });
+
   const openCreateModal = () => {
     setEditingProduct(null);
     setProdName('');
     setProdDescription('');
     setProdPrice('');
     setProdStock('10');
-    setProdCategory(shop?.category || 'Electronics');
+    const initialCat = selectedCategory.toLowerCase() !== 'all'
+      ? selectedCategory
+      : (shop?.category ? parseCategories(shop.category)[0] : 'Electronics');
+    setProdCategory(initialCat);
     setProdImageUrl('');
     setIsProductModalOpen(true);
   };
@@ -207,7 +238,7 @@ export const AdminDashboard: React.FC = () => {
             }`}
           >
             <Package className="w-4 h-4" />
-            Products ({products.length})
+            Products ({selectedCategory.toLowerCase() !== 'all' ? `${filteredProducts.length}/${products.length}` : products.length})
           </button>
           <button
             onClick={() => setActiveTab('orders')}
@@ -237,8 +268,27 @@ export const AdminDashboard: React.FC = () => {
       {/* Tab: Products */}
       {activeTab === 'products' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">Product Inventory</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-white">Product Inventory</h2>
+              {selectedCategory.toLowerCase() !== 'all' && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                  <Tag className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Category: {selectedCategory}</span>
+                  <button
+                    onClick={() => {
+                      const p = new URLSearchParams(searchParams);
+                      p.delete('category');
+                      setSearchParams(p);
+                    }}
+                    className="ml-1 text-slate-400 hover:text-white cursor-pointer font-bold"
+                    title="Clear category filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={openCreateModal}
               className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all cursor-pointer"
@@ -249,14 +299,42 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <div className="col-span-full py-16 text-center text-slate-500 glass-panel rounded-2xl border border-white/5">
                 <Package className="w-12 h-12 mx-auto text-slate-600 mb-2" />
-                <p className="text-base font-semibold text-white">No products in your catalog</p>
-                <p className="text-xs text-slate-400 mt-1">Start by publishing items for customers to purchase.</p>
+                <p className="text-base font-semibold text-white">
+                  {selectedCategory.toLowerCase() !== 'all'
+                    ? `No products found in "${selectedCategory}"`
+                    : 'No products in your catalog'}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {selectedCategory.toLowerCase() !== 'all'
+                    ? 'There are currently no items under this category in your shop.'
+                    : 'Start by publishing items for customers to purchase.'}
+                </p>
+                {selectedCategory.toLowerCase() !== 'all' && (
+                  <div className="mt-4 flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => {
+                        const p = new URLSearchParams(searchParams);
+                        p.delete('category');
+                        setSearchParams(p);
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/20 text-white font-medium cursor-pointer"
+                    >
+                      Clear Category Filter
+                    </button>
+                    <button
+                      onClick={openCreateModal}
+                      className="px-3 py-1.5 rounded-lg text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer"
+                    >
+                      + Add Product to {selectedCategory}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
-              products.map((p) => (
+              filteredProducts.map((p) => (
                 <div
                   key={p.id}
                   className="glass-card rounded-2xl border border-white/10 overflow-hidden flex flex-col group"

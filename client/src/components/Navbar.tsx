@@ -23,11 +23,13 @@ import {
   Heart,
   BookOpen,
   Home,
-  Palette
+  Palette,
+  Smartphone,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { customerService, Shop } from '../services/api';
+import { customerService, adminService, Shop, Product } from '../services/api';
 
 interface CategoryItem {
   id: string;
@@ -38,14 +40,16 @@ interface CategoryItem {
 const getCategoryIcon = (name: string): React.ComponentType<{ className?: string }> => {
   const lower = name.toLowerCase();
   if (lower === 'all' || lower.includes('all product')) return Sparkles;
-  if (lower.includes('snack') || lower.includes('food') || lower.includes('gourmet') || lower.includes('fruit') || lower.includes('grocery') || lower.includes('drink')) return Coffee;
-  if (lower.includes('audio') || lower.includes('sound') || lower.includes('headphone') || lower.includes('head set') || lower.includes('headset')) return Headphones;
+  if (lower.includes('mobile') || lower.includes('phone') || lower.includes('cell')) return Smartphone;
+  if (lower.includes('charger') || lower.includes('power') || lower.includes('battery') || lower.includes('cable')) return Zap;
+  if (lower.includes('snack') || lower.includes('food') || lower.includes('gourmet') || lower.includes('fruit') || lower.includes('grocery') || lower.includes('drink') || lower.includes('nut') || lower.includes('date')) return Coffee;
+  if (lower.includes('audio') || lower.includes('sound') || lower.includes('headphone') || lower.includes('head set') || lower.includes('headset') || lower.includes('earphone')) return Headphones;
   if (lower.includes('game') || lower.includes('gaming') || lower.includes('vr')) return Gamepad2;
   if (lower.includes('display') || lower.includes('screen') || lower.includes('monitor') || lower.includes('tv')) return Monitor;
   if (lower.includes('watch') || lower.includes('clock') || lower.includes('time')) return Watch;
   if (lower.includes('jewel') || lower.includes('gem') || lower.includes('luxury') || lower.includes('gold') || lower.includes('diamond')) return Gem;
   if (lower.includes('apparel') || lower.includes('fashion') || lower.includes('cloth') || lower.includes('shirt') || lower.includes('streetwear')) return Shirt;
-  if (lower.includes('tech') || lower.includes('electron') || lower.includes('gadget') || lower.includes('cpu') || lower.includes('hardware') || lower.includes('mobile') || lower.includes('phone')) return Cpu;
+  if (lower.includes('tech') || lower.includes('electron') || lower.includes('gadget') || lower.includes('cpu') || lower.includes('hardware')) return Cpu;
   if (lower.includes('sport') || lower.includes('outdoor') || lower.includes('fitness')) return Activity;
   if (lower.includes('beauty') || lower.includes('health') || lower.includes('cosmetic') || lower.includes('wellness') || lower.includes('parfum') || lower.includes('fragrance') || lower.includes('perfume')) return Heart;
   if (lower.includes('book') || lower.includes('media') || lower.includes('library')) return BookOpen;
@@ -71,12 +75,27 @@ export const Navbar: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const [shops, setShops] = useState<Shop[]>([]);
+  const [adminShop, setAdminShop] = useState<Shop | null>(null);
+  const [adminProducts, setAdminProducts] = useState<Product[]>([]);
 
   const fetchCategoriesData = async () => {
     try {
       const shopsData = await customerService.getShops();
       const loadedShops: Shop[] = Array.isArray(shopsData) ? shopsData : (shopsData?.shops || []);
       setShops(loadedShops);
+
+      if (isAdmin) {
+        try {
+          const [shopRes, prodsRes] = await Promise.all([
+            adminService.getShopProfile(),
+            adminService.getProducts(),
+          ]);
+          setAdminShop(shopRes?.shop || shopRes || null);
+          setAdminProducts(Array.isArray(prodsRes) ? prodsRes : (prodsRes?.products || []));
+        } catch (adminErr) {
+          console.error('Error fetching admin shop details for Navbar:', adminErr);
+        }
+      }
     } catch (err) {
       console.error('Error fetching categories data for Navbar:', err);
     }
@@ -84,7 +103,7 @@ export const Navbar: React.FC = () => {
 
   useEffect(() => {
     fetchCategoriesData();
-  }, [location.pathname]);
+  }, [location.pathname, isAdmin, user?.shopId]);
 
   const isStorePage = location.pathname.startsWith('/store/');
   const storeSlug = isStorePage
@@ -92,22 +111,44 @@ export const Navbar: React.FC = () => {
     : null;
   const currentShop = storeSlug ? shops.find((s) => s.slug === storeSlug) : null;
 
+  // Respective admin shop (when logged in as merchant admin)
+  const respectiveShop = React.useMemo(() => {
+    if (!isAdmin) return null;
+    if (adminShop) return adminShop;
+    if (user?.shopId) return shops.find((s) => s.id === user.shopId) || null;
+    return null;
+  }, [isAdmin, adminShop, user?.shopId, shops]);
+
   const isSuperAdminPage = location.pathname.startsWith('/superadmin');
-  const isAdminPage = location.pathname.startsWith('/admin');
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isOrdersPage = location.pathname.startsWith('/orders');
-  const showSecondHeader = !isSuperAdminPage && !isAdminPage && !isAuthPage && !isOrdersPage;
+  // Second header appears for the respective admin on /admin, storefront, and store pages
+  const showSecondHeader = !isSuperAdminPage && !isAuthPage && !isOrdersPage;
+
+  // Active shop to determine category items:
+  // If explicitly viewing another store, use that store. Otherwise, if respective admin is logged in, use their shop.
+  const activeTargetShop = (isStorePage ? currentShop : null) || respectiveShop || currentShop;
 
   // Build categories to display: Show all store categories checked for this merchant store
   const displayedCategories: CategoryItem[] = React.useMemo(() => {
-    // If viewing a specific merchant store (/store/:slug)
-    if (currentShop) {
+    // If viewing a specific merchant store OR logged in by respective admin
+    if (activeTargetShop) {
       const storeCats: CategoryItem[] = [
         { id: 'all', name: 'All Products', icon: Sparkles },
       ];
 
-      // Take all store categories selected via checkbox for this merchant store
-      const currentShopCats = parseCategories(currentShop.category);
+      // 1. First, include the exact shop category string as shown in the pill (e.g. "Mobile, head set, charger")
+      if (activeTargetShop.category && activeTargetShop.category.trim()) {
+        const fullCat = activeTargetShop.category.trim();
+        storeCats.push({
+          id: fullCat,
+          name: fullCat,
+          icon: Tag,
+        });
+      }
+
+      // 2. Also include any individual subcategories parsed from comma/JSON list if different from the full string
+      const currentShopCats = parseCategories(activeTargetShop.category);
       for (const cat of currentShopCats) {
         if (!storeCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
           storeCats.push({
@@ -115,6 +156,22 @@ export const Navbar: React.FC = () => {
             name: cat,
             icon: getCategoryIcon(cat),
           });
+        }
+      }
+
+      // 3. If respective admin is logged in, also include any distinct categories from their products
+      if (respectiveShop && adminProducts.length > 0) {
+        for (const p of adminProducts) {
+          if (p.category && p.category.trim()) {
+            const pCat = p.category.trim();
+            if (!storeCats.some((c) => c.id.toLowerCase() === pCat.toLowerCase())) {
+              storeCats.push({
+                id: pCat,
+                name: pCat,
+                icon: getCategoryIcon(pCat),
+              });
+            }
+          }
         }
       }
 
@@ -146,7 +203,7 @@ export const Navbar: React.FC = () => {
     }
 
     return allCats;
-  }, [currentShop, shops]);
+  }, [activeTargetShop, respectiveShop, adminProducts, shops]);
 
   const handleLogout = () => {
     logout();
@@ -158,7 +215,8 @@ export const Navbar: React.FC = () => {
 
   const handleCategoryClick = (categoryId: string) => {
     const isStorefront = location.pathname === '/' || location.pathname.startsWith('/store');
-    const targetPath = isStorefront ? location.pathname : '/';
+    const isMerchantAdmin = location.pathname.startsWith('/admin');
+    const targetPath = (isStorefront || isMerchantAdmin) ? location.pathname : '/';
 
     const newParams = new URLSearchParams(searchParams);
     if (categoryId.toLowerCase() === 'all') {
@@ -169,9 +227,10 @@ export const Navbar: React.FC = () => {
     const searchStr = newParams.toString() ? `?${newParams.toString()}` : '';
 
     // If in a store and clicking a category belonging to a different merchant store, navigate to '/' marketplace
-    const shopCats = currentShop ? parseCategories(currentShop.category).map((c) => c.toLowerCase()) : [];
+    const shopCats = activeTargetShop ? parseCategories(activeTargetShop.category).map((c) => c.toLowerCase()) : [];
     if (
       currentShop &&
+      !respectiveShop &&
       categoryId.toLowerCase() !== 'all' &&
       !shopCats.includes(categoryId.toLowerCase())
     ) {
@@ -186,7 +245,7 @@ export const Navbar: React.FC = () => {
       {/* Primary Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
-        <Link to="/" className="flex items-center gap-2.5 group">
+        <Link to={isSuperAdmin ? "/superadmin" : "/"} className="flex items-center gap-2.5 group">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
             <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-emerald-400 group-hover:rotate-12 transition-transform" />
@@ -204,19 +263,21 @@ export const Navbar: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-1">
-          <Link
-            to="/"
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              isActive('/') 
-                ? 'bg-white/10 text-white font-semibold' 
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Store className="w-4 h-4 text-emerald-400" />
-            Storefront
-          </Link>
+          {!isSuperAdmin && (
+            <Link
+              to="/"
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                isActive('/') 
+                  ? 'bg-white/10 text-white font-semibold' 
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Store className="w-4 h-4 text-emerald-400" />
+              Storefront
+            </Link>
+          )}
 
-          {isAuthenticated && (
+          {isAuthenticated && !isSuperAdmin && (
             <Link
               to="/orders"
               className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
@@ -262,18 +323,20 @@ export const Navbar: React.FC = () => {
         {/* Right Actions */}
         <div className="flex items-center gap-3">
           {/* Cart Trigger */}
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="relative p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 border border-white/5 transition-all cursor-pointer"
-            aria-label="View Cart"
-          >
-            <ShoppingBag className="w-5 h-5 text-emerald-400" />
-            {totalItems > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-slate-950 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
-                {totalItems}
-              </span>
-            )}
-          </button>
+          {!isSuperAdmin && (
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 border border-white/5 transition-all cursor-pointer"
+              aria-label="View Cart"
+            >
+              <ShoppingBag className="w-5 h-5 text-emerald-400" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-slate-950 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                  {totalItems}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* User Auth Info */}
           {isAuthenticated && user ? (
@@ -323,58 +386,86 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* SECOND HEADER: Category Navigation Bar (Hidden on Master Admin /superadmin, Merchant Admin /admin, Auth, and Orders pages) */}
+      {/* SECOND HEADER: Category Navigation Bar (Appears on storefronts and for respective admin on /admin) */}
       {showSecondHeader && (
         <div className="border-t border-white/10 bg-slate-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between gap-4">
-          {/* Scrollable category list */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 flex-1">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider pr-3 border-r border-white/10 shrink-0">
-              {currentShop ? (
-                <>
-                  <Store className="w-3.5 h-3.5 text-purple-400" />
-                  <span className="text-purple-300 max-w-[130px] truncate">{currentShop.name}</span>
-                </>
-              ) : (
-                <>
-                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Categories</span>
-                </>
-              )}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between gap-4">
+            {/* Scrollable category list */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 flex-1">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider pr-3 border-r border-white/10 shrink-0">
+                {respectiveShop ? (
+                  <>
+                    <Store className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-amber-300 max-w-[140px] truncate font-semibold" title={respectiveShop.name}>
+                      {respectiveShop.name}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                      Admin
+                    </span>
+                  </>
+                ) : currentShop ? (
+                  <>
+                    <Store className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="text-purple-300 max-w-[130px] truncate">{currentShop.name}</span>
+                  </>
+                ) : (
+                  <>
+                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Categories</span>
+                  </>
+                )}
+              </div>
+
+              {displayedCategories.map((cat) => {
+                const Icon = cat.icon;
+                const isSelected =
+                  (currentCategory === 'all' && cat.id.toLowerCase() === 'all') ||
+                  (currentCategory.toLowerCase() === cat.id.toLowerCase());
+
+                const isExactShopCategory =
+                  activeTargetShop?.category &&
+                  cat.id.toLowerCase() === activeTargetShop.category.toLowerCase();
+
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategoryClick(cat.id)}
+                    className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-emerald-500/25 to-teal-500/25 text-emerald-300 border border-emerald-500/50 shadow-md shadow-emerald-500/20 font-semibold'
+                        : isExactShopCategory
+                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/20 hover:border-emerald-500/40 font-semibold shadow-sm'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent font-medium'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isSelected || isExactShopCategory ? 'text-emerald-400' : 'text-slate-500'}`} />
+                    <span>{cat.name}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {displayedCategories.map((cat) => {
-              const Icon = cat.icon;
-              const isSelected =
-                (currentCategory === 'all' && cat.id.toLowerCase() === 'all') ||
-                (currentCategory.toLowerCase() === cat.id.toLowerCase());
-
-              return (
+            {/* Right indicator: Exact store category pill */}
+            <div className="hidden md:flex items-center gap-2 text-xs shrink-0">
+              {activeTargetShop?.category ? (
                 <button
-                  key={cat.id}
-                  onClick={() => handleCategoryClick(cat.id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                  }`}
+                  type="button"
+                  onClick={() => handleCategoryClick(activeTargetShop.category!)}
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 flex items-center gap-1.5 shadow-sm hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all cursor-pointer"
+                  title={`Filter by ${activeTargetShop.category}`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`} />
-                  <span>{cat.name}</span>
+                  <Tag className="w-3 h-3 text-emerald-400" />
+                  <span>{activeTargetShop.category}</span>
                 </button>
-              );
-            })}
-          </div>
-
-          {/* Right indicator */}
-          <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 shrink-0">
-            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-300 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {currentShop ? `${currentShop.category || 'Store'} Category` : 'Live Catalog'}
-            </span>
+              ) : (
+                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-300 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-400" />
+                  Live Catalog
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       )}
     </header>
   );
