@@ -35,7 +35,7 @@ export const AdminDashboard: React.FC = () => {
   const [prodName, setProdName] = useState('');
   const [prodDescription, setProdDescription] = useState('');
   const [prodPrice, setProdPrice] = useState('');
-  const [prodStock, setProdStock] = useState('10');
+  const [prodWeight, setProdWeight] = useState('Below 250g');
   const [prodCategory, setProdCategory] = useState('Electronics');
   const [prodImageUrl, setProdImageUrl] = useState('');
   const [submittingProduct, setSubmittingProduct] = useState(false);
@@ -101,7 +101,7 @@ export const AdminDashboard: React.FC = () => {
     setProdName('');
     setProdDescription('');
     setProdPrice('');
-    setProdStock('10');
+    setProdWeight('Below 250g');
     const initialCat = selectedCategory.toLowerCase() !== 'all'
       ? selectedCategory
       : (shop?.category ? parseCategories(shop.category)[0] : 'Electronics');
@@ -115,7 +115,7 @@ export const AdminDashboard: React.FC = () => {
     setProdName(p.name);
     setProdDescription(p.description || '');
     setProdPrice(p.price.toString());
-    setProdStock(p.stock.toString());
+    setProdWeight(p.weight || 'Below 250g');
     setProdCategory(p.category || 'General');
     setProdImageUrl(p.imageUrl || '');
     setIsProductModalOpen(true);
@@ -134,7 +134,7 @@ export const AdminDashboard: React.FC = () => {
         name: prodName,
         description: prodDescription,
         price: parseFloat(prodPrice),
-        stock: parseInt(prodStock, 10) || 0,
+        weight: prodWeight,
         category: prodCategory,
         imageUrl: prodImageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80',
       };
@@ -590,15 +590,17 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Stock Count</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="25"
-                    value={prodStock}
-                    onChange={(e) => setProdStock(e.target.value)}
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Weight</label>
+                  <select
+                    value={prodWeight}
+                    onChange={(e) => setProdWeight(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500"
-                  />
+                  >
+                    <option value="Below 250g">Below 250g</option>
+                    <option value="250g-500g">250g - 500g</option>
+                    <option value="500g-1kg">500g - 1kg</option>
+                    <option value="Above 1kg">Above 1kg</option>
+                  </select>
                 </div>
               </div>
 
