@@ -127,19 +127,21 @@ export const Navbar: React.FC = () => {
 
   // Active shop to determine category items:
   // If explicitly viewing another store, use that store. Otherwise, if respective admin is logged in, use their shop.
-  const activeTargetShop = (isStorePage ? currentShop : null) || respectiveShop || currentShop;
+  const activeTargetShop = (isStorePage ? currentShop : null) || respectiveShop || adminShop || currentShop;
 
   // Build categories to display: Show all store categories checked for this merchant store
   const displayedCategories: CategoryItem[] = React.useMemo(() => {
     // If viewing a specific merchant store OR logged in by respective admin
-    if (activeTargetShop) {
+    const targetShop = activeTargetShop || respectiveShop || adminShop;
+    if (targetShop) {
       const storeCats: CategoryItem[] = [
         { id: 'all', name: 'All Products', icon: Sparkles },
       ];
 
       // 1. First, include the exact shop category string as shown in the pill (e.g. "Mobile, head set, charger")
-      if (activeTargetShop.category && activeTargetShop.category.trim()) {
-        const fullCat = activeTargetShop.category.trim();
+      const rawCategory = targetShop.category || respectiveShop?.category || adminShop?.category;
+      if (rawCategory && rawCategory.trim()) {
+        const fullCat = rawCategory.trim();
         storeCats.push({
           id: fullCat,
           name: fullCat,
@@ -148,7 +150,7 @@ export const Navbar: React.FC = () => {
       }
 
       // 2. Also include any individual subcategories parsed from comma/JSON list if different from the full string
-      const currentShopCats = parseCategories(activeTargetShop.category);
+      const currentShopCats = parseCategories(rawCategory);
       for (const cat of currentShopCats) {
         if (!storeCats.some((c) => c.id.toLowerCase() === cat.toLowerCase())) {
           storeCats.push({
@@ -160,7 +162,7 @@ export const Navbar: React.FC = () => {
       }
 
       // 3. If respective admin is logged in, also include any distinct categories from their products
-      if (respectiveShop && adminProducts.length > 0) {
+      if ((respectiveShop || adminShop) && adminProducts.length > 0) {
         for (const p of adminProducts) {
           if (p.category && p.category.trim()) {
             const pCat = p.category.trim();
@@ -203,7 +205,7 @@ export const Navbar: React.FC = () => {
     }
 
     return allCats;
-  }, [activeTargetShop, respectiveShop, adminProducts, shops]);
+  }, [activeTargetShop, respectiveShop, adminShop, adminProducts, shops]);
 
   const handleLogout = () => {
     logout();
@@ -392,26 +394,52 @@ export const Navbar: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between gap-4">
             {/* Scrollable category list */}
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 flex-1">
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider pr-3 border-r border-white/10 shrink-0">
+              <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold pr-3 border-r border-white/10 shrink-0">
                 {respectiveShop ? (
-                  <>
-                    <Store className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-amber-300 max-w-[140px] truncate font-semibold" title={respectiveShop.name}>
-                      {respectiveShop.name}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
-                      Admin
-                    </span>
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-amber-300 max-w-[140px] truncate font-semibold uppercase tracking-wider" title={respectiveShop.name}>
+                        {respectiveShop.name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono uppercase">
+                        Admin
+                      </span>
+                    </div>
+                    {respectiveShop.category && (
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryClick(respectiveShop.category!)}
+                        className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 flex items-center gap-1.5 shadow-sm hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all cursor-pointer"
+                        title={`Category: ${respectiveShop.category}`}
+                      >
+                        <Tag className="w-3 h-3 text-emerald-400" />
+                        <span>{respectiveShop.category}</span>
+                      </button>
+                    )}
+                  </div>
                 ) : currentShop ? (
-                  <>
-                    <Store className="w-3.5 h-3.5 text-purple-400" />
-                    <span className="text-purple-300 max-w-[130px] truncate">{currentShop.name}</span>
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-purple-300 max-w-[130px] truncate uppercase tracking-wider">{currentShop.name}</span>
+                    </div>
+                    {currentShop.category && (
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryClick(currentShop.category!)}
+                        className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 flex items-center gap-1.5 shadow-sm hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all cursor-pointer"
+                        title={`Category: ${currentShop.category}`}
+                      >
+                        <Tag className="w-3 h-3 text-emerald-400" />
+                        <span>{currentShop.category}</span>
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Categories</span>
+                    <span className="uppercase tracking-wider">Categories</span>
                   </>
                 )}
               </div>
