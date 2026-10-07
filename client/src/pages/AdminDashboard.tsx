@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   Package, 
@@ -39,6 +39,7 @@ export const AdminDashboard: React.FC = () => {
   const [prodCategory, setProdCategory] = useState('Electronics');
   const [prodImageUrl, setProdImageUrl] = useState('');
   const [submittingProduct, setSubmittingProduct] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Shop Settings Form
   const [shopName, setShopName] = useState('');
@@ -620,6 +621,26 @@ export const AdminDashboard: React.FC = () => {
                   value={prodImageUrl}
                   onChange={(e) => setProdImageUrl(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="ml-2 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
+                >
+                  Upload
+                </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      setProdImageUrl(url);
+                    }
+                  }}
                 />
               </div>
 
