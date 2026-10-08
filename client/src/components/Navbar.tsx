@@ -119,9 +119,9 @@ export const Navbar: React.FC = () => {
     return null;
   }, [isAdmin, adminShop, user?.shopId, shops]);
 
-  const isSuperAdminPage = location.pathname.startsWith('/superadmin');
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isOrdersPage = location.pathname.startsWith('/orders');
+  // const isSuperAdminPage = location.pathname.startsWith('/superadmin');
+  // const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  // const isOrdersPage = location.pathname.startsWith('/orders');
   // Second header appears for the respective admin on /admin, storefront, and store pages
   const showSecondHeader = false; // second header removed
 
