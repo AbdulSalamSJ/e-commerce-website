@@ -304,7 +304,7 @@ export const CustomerStore: React.FC = () => {
                         className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none ${pTheme.buttonClass}`}
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
-                        <span>{p.stock > 0 ? 'Add to Cart' : 'Sold Out'}</span>
+                        <span>{(p.stock ?? 0) > 0 ? 'Add to Cart' : 'Sold Out'}</span>
                       </button>
                     </div>
                   </div>
