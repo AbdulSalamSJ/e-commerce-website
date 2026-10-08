@@ -123,7 +123,7 @@ export const Navbar: React.FC = () => {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isOrdersPage = location.pathname.startsWith('/orders');
   // Second header appears for the respective admin on /admin, storefront, and store pages
-  const showSecondHeader = !isSuperAdminPage && !isAuthPage && !isOrdersPage;
+  const showSecondHeader = false; // second header removed
 
   // Active shop to determine category items:
   // If explicitly viewing another store, use that store. Otherwise, if respective admin is logged in, use their shop.

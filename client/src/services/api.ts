@@ -27,7 +27,8 @@ export interface Product {
   name: string;
   description?: string | null;
   price: string | number;
-  stock: number;
+  weight?: string; // new field, e.g., 'Below 250g'
+  stock?: number; // optional for legacy code
   imageUrl?: string | null;
   category?: string | null;
   isActive: boolean;
